@@ -16,3 +16,24 @@
 * The grade for the project is anonymous and the total grade is calculated by omitting the lowest and highest grades and then averaging the remaining ones. The grades are 1-10 with at most 2 fractional digits.
 * As a professor, i can see the results of the evaluation for each project, without being able to see the identity of the jury members.
 * The application has a system of permissions. Only a member of the jury can add/modify grades and they can only modify their own grades. Grades can only be modified for a limited period of time.
+
+# Technical Requirements
+
+* Frontend:
+
+Framework: React.js.
+CSS
+
+* Backend:
+
+Framework: Node.js with Express.js.
+Database: MySQL for user, project, and grading data.
+
+
+* Authentication:
+
+JWT for secure session handling.
+
+* Logic:
+
+Implement random jury assignment in the backend and ensure anonymity by masking jury member IDs during evaluation retrieval
