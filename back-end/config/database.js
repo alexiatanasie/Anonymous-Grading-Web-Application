@@ -1,3 +1,6 @@
 const { Sequelize } = require('sequelize');
-//here we have to create a new sequelize instance!!!!
+const sequelize =new Sequelize({
+    dialect:"sqlite",
+    storage:"database.db",
+})
 module.exports = sequelize;
