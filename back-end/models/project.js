@@ -15,6 +15,7 @@ const Project=sequelize.define(
             type: DataTypes.INTEGER,
             allowNull: false,
         },
+        
     },
     { timestamps: false }
 );

@@ -11,6 +11,10 @@ const Jury=sequelize.define(
         type: DataTypes.INTEGER,
         allowNull:false,
         },
+        UserId:{
+            type: DataTypes.INTEGER,
+        allowNull:false,
+        },
         StudentId:{
             type: DataTypes.INTEGER,
             allowNull:false,
