@@ -1,5 +1,6 @@
-const {DataTypes}=require("sequelize");
-const sequelize=require("../config/database");
+import { DataTypes } from "sequelize";
+import sequelize from "../config/database.js";
+
 const Jury=sequelize.define(
     "Jury",{
         JuryId:{
@@ -23,4 +24,4 @@ const Jury=sequelize.define(
     { timestamps: false }
 
 );
-module.exports = Jury;
+export default Jury;

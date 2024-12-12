@@ -1,5 +1,6 @@
-const {DataTypes}=require("sequelize");
-const sequelize=require("../config/database");
+import { DataTypes } from "sequelize";
+import sequelize from "../config/database.js";
+
 
 const Grade=sequelize.define(
     "Grade",
@@ -29,4 +30,4 @@ const Grade=sequelize.define(
     { timestamps: false }
 
 );
-module.exports = Grade;
+export default Grade;

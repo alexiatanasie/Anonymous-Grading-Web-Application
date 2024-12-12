@@ -1,10 +1,30 @@
-import models from './models/index.js';
-import express from 'express'
-const { User, Student, Professor, Jury, Grade, Team, Project, Notification,Derivable } = models;
+import express from "express";
+import cors from "cors";
+//const express = require("express");
 const app = express();
-const cors = require("cors");
+//const cors = require("cors");
 const port = 8000;
 
+import User from "./models/user.js";
+import Grade from "./models/grade.js";
+import Student from "./models/student.js";
+import Professor from "./models/professor.js";
+import Team from "./models/team.js";
+import Jury from "./models/jury.js";
+import Project from "./models/project.js";
+import Notification from "./models/notification.js";
+///nu inteleg dc am eroare aici!!!!
+//import Deliverable from "./models/deliverable.js";
+
+// const User=require("./models.user");
+// const Grade=require("./models.grade");
+// const Student=require("./models.student");
+// const Professor=require("./models.professor");
+// const Team=require("./models.team");
+// const Jury=require("./models.jury");
+// const Project=require("./models.project");
+// const Notification=require("./models.notification");
+// const Deliverable=require("./models.deliverable");
 
 app.use(cors());
 app.use(express.json());
@@ -148,10 +168,79 @@ app.post("/api/assign-jury",async(req,res)=>{
   }
 });
 
+app.post("/api/notifications", async (req, res) => {
+  const { userId, message } = req.body;
+  if (!userId || !message) {
+    return res.status(400).json({ message: "User Id and message are required" });
+  }
+
+  try {
+    const notification = await Notification.create({
+      UserId: userId,
+      Message: message,
+      IsRead: false, 
+    });
+
+    return res.status(201).json({ message: "Notification created successfully", notification });
+  } catch (error) {
+    return res.status(500).json({ message: "Error creating notification", error });
+  }
+});
+
+app.get("/api/notifications/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const notifications = await Notification.findAll({ where: { UserId: userId } });
+
+    if (!notifications.length) {
+      return res.status(404).json({ message: "No notifications found for this user" });
+    }
+
+    return res.status(200).json({ notifications });
+  } catch (error) {
+    return res.status(500).json({ message: "Error fetching notifications", error });
+  }
+});
+app.post("/api/deliverables", async (req, res) => {
+  const { projectId, title, description } = req.body;
+  if (!projectId || !title) {
+    return res.status(400).json({ message: "Project Id and title are required" });
+  }
+
+  try {
+    const deliverable = await Deliverable.create({
+      ProjectId: projectId,
+      Title: title,
+      Description: description || null,
+    });
+
+    return res.status(201).json({ message: "Deliverable created successfully", deliverable });
+  } catch (error) {
+    return res.status(500).json({ message: "Error creating deliverable", error });
+  }
+});
+app.get("/api/deliverables/:projectId", async (req, res) => {
+  const { projectId } = req.params;
+
+  try {
+    const deliverables = await Deliverable.findAll({ where: { ProjectId: projectId } });
+
+    if (!deliverables.length) {
+      return res.status(404).json({ message: "No deliverables found for this project" });
+    }
+
+    return res.status(200).json({ deliverables });
+  } catch (error) {
+    return res.status(500).json({ message: "Error fetching deliverables", error });
+  }
+});
+
 
 //TO DO: CALCULATE THE FINAL GRADE
 
 
-app.listen(port, () => {
-  console.log(`Anonymous Grading App is running on port ${port}`);
-});
+// app.listen(port, () => {
+//   console.log(`Anonymous Grading App is running on port ${port}`);
+// });
+app.listen(port);// cred ca sunt the same astea 2
