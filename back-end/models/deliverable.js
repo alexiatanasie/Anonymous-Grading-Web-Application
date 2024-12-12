@@ -1,28 +1,32 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/database");
 
-const Professor = sequelize.define(
-  "Professor",
+const Deliverable = sequelize.define(
+  "Deliverable",
   {
-    ProfessorId: {
+    DeliverableId: {
       type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true,
     },
-    UserId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
-    ProfessorName: {
+    Title: {
       type: DataTypes.STRING,
       allowNull: false,
     },
+    Description: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    VideoLink: {
+      type: DataTypes.STRING, 
+      allowNull: true,
+    },
     ProjectId: {
       type: DataTypes.INTEGER,
-      allowNull: true,
+      allowNull: false,
     },
   },
   { timestamps: false }
 );
 
-module.exports = Professor;
+module.exports = Deliverable;

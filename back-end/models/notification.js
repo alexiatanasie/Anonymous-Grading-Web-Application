@@ -19,14 +19,7 @@ const Notification=sequelize.define(
             type: DataTypes.BOOLEAN,
             defaultValue: false,
         },
-        Message: {
-            type: DataTypes.STRING,
-            allowNull: false,
-        },
-        IsRead: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: false,
-        },
+        
     },
     { timestamps: false }
 

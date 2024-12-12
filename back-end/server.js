@@ -1,17 +1,9 @@
-
-const express = require("express");
+import models from './models/index.js';
+import express from 'express'
+const { User, Student, Professor, Jury, Grade, Team, Project, Notification,Derivable } = models;
 const app = express();
 const cors = require("cors");
 const port = 8000;
-
-
-const Professor = require("./models/professor");
-const Student = require("./models/student");
-const Team = require("./models/team");
-const Project = require("./models/project");
-const User = require("./models/user");
-const Grade = require("./models/grade");
-const Jury = require("./models/jury");
 
 
 app.use(cors());
@@ -49,7 +41,7 @@ app.post("/api/register", async (req, res) => {
 app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
-    return res.status(400).json({ message: "Email/ password are required" });
+    return res.status(400).json({ message: "Email or password are required" });
   }
 
   try {
@@ -69,7 +61,7 @@ app.post("/api/login", async (req, res) => {
 app.post("/api/create-team", async (req, res) => {
   const { teamName, userId } = req.body;
   if (!teamName || !userId) {
-    return res.status(400).json({ message: "Team name and user ID are required" });
+    return res.status(400).json({ message: "Team name and user Id are required" });
   }
 
   try {
@@ -89,7 +81,7 @@ app.post("/api/create-team", async (req, res) => {
 app.post("/api/create-project", async (req, res) => {
   const { title, teamId, grade } = req.body;
   if (!title || !teamId) {
-    return res.status(400).json({ message: "Title and team ID are required" });
+    return res.status(400).json({ message: "Title and team Id are required" });
   }
 
   try {
@@ -133,13 +125,33 @@ app.get("/api/grades/:projectId", async (req, res) => {
       return res.status(404).json({ message: "No grades found for this project" });
     }
 
-    return res.status(200).json({ grades });
+    return res.status(200).json({ message: "Grades endpoint is working!" });
   } catch (error) {
     return res.status(500).json({ message: "Error fetching grades", error });
   }
 });
+app.post("/api/assign-jury",async(req,res)=>{
+  const{userId,projectId}=req.body;
+  if(!userId || !projectId){
+    return res.status(400).json({ message: "User Id and project Id are required" });
+  }
+
+  try {
+    const jury = await Jury.create({
+      UserId: userId,
+      ProjectId: projectId,
+    });
+
+    return res.status(201).json({ message: "Jury assigned successfully", jury });
+  } catch (error) {
+    return res.status(500).json({ message: "Error assigning jury", error });
+  }
+});
+
+
+//TO DO: CALCULATE THE FINAL GRADE
 
 
 app.listen(port, () => {
-  console.log(`Anonymous Grading Web App Tenerife is running on port ${port}`);
+  console.log(`Anonymous Grading App is running on port ${port}`);
 });
