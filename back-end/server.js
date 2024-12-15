@@ -1,246 +1,171 @@
 import express from "express";
 import cors from "cors";
-//const express = require("express");
+import models from "./models/index.js"; 
+
 const app = express();
-//const cors = require("cors");
 const port = 8000;
 
-import User from "./models/user.js";
-import Grade from "./models/grade.js";
-import Student from "./models/student.js";
-import Professor from "./models/professor.js";
-import Team from "./models/team.js";
-import Jury from "./models/jury.js";
-import Project from "./models/project.js";
-import Notification from "./models/notification.js";
-///nu inteleg dc am eroare aici!!!!
-//import Deliverable from "./models/deliverable.js";
-
-// const User=require("./models.user");
-// const Grade=require("./models.grade");
-// const Student=require("./models.student");
-// const Professor=require("./models.professor");
-// const Team=require("./models.team");
-// const Jury=require("./models.jury");
-// const Project=require("./models.project");
-// const Notification=require("./models.notification");
-// const Deliverable=require("./models.deliverable");
 
 app.use(cors());
 app.use(express.json());
 
 
+const { User, Student, Professor, Jury, Grade, Team, Project, Notification, Deliverable } = models;
+
+
 app.post("/api/register", async (req, res) => {
-  const { username, password, email, userType } = req.body;
-  if (!username || !password || !email || !userType) {
-    return res.status(400).json({ message: "All fields are required" });
-  }
-
-  try {
-    const user = await User.create({
-      Username: username,
-      Name: username,
-      Password: password, 
-      Email: email,
-      UserType: userType,
-    });
-
-    if (userType === "professor") {
-      await Professor.create({ UserId: user.UserId });
-    } else if (userType === "student") {
-      await Student.create({ UserId: user.UserId });
+    const { username, password, email, userType } = req.body;
+    if (!username || !password || !email || !userType) {
+        return res.status(400).json({ message: "All fields are required" });
     }
 
-    return res.status(201).json({ message: "User registered successfully" });
-  } catch (error) {
-    return res.status(500).json({ message: "Error registering user", error });
-  }
+    try {
+        const user = await User.create({ Username: username, Password: password, Email: email, UserType: userType });
+        if (userType === "professor") {
+            await Professor.create({ UserId: user.UserId });
+        } else if (userType === "student") {
+            await Student.create({ UserId: user.UserId });
+        }
+
+        res.status(201).json({ message: "User registered successfully", user });
+    } catch (error) {
+        res.status(500).json({ message: "Error registering user", error });
+    }
 });
 
 
 app.post("/api/login", async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ message: "Email or password are required" });
-  }
-
-  try {
-    const user = await User.findOne({ where: { Email: email } });
-
-    if (!user || user.Password !== password) {
-      return res.status(401).json({ message: "Invalid credentials" });
+    const { email, password } = req.body;
+    if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
     }
 
-    return res.status(200).json({ message: "Login successful", user });
-  } catch (error) {
-    return res.status(500).json({ message: "Error logging in", error });
-  }
+    try {
+        const user = await User.findOne({ where: { Email: email } });
+        if (!user || user.Password !== password) {
+            return res.status(401).json({ message: "Invalid credentials" });
+        }
+
+        res.status(200).json({ message: "Login successful", user });
+    } catch (error) {
+        res.status(500).json({ message: "Error logging in", error });
+    }
 });
 
 
-app.post("/api/create-team", async (req, res) => {
-  const { teamName, userId } = req.body;
-  if (!teamName || !userId) {
-    return res.status(400).json({ message: "Team name and user Id are required" });
-  }
+app.post("/api/createteam", async (req, res) => {
+    const { teamName, userIds } = req.body; 
+    if (!teamName || !userIds || !userIds.length) {
+        return res.status(400).json({ message: "Team name and user IDs are required" });
+    }
 
-  try {
-    const team = await Team.create({
-      TeamName: teamName,
-    });
+    try {
+        const team = await Team.create({ TeamName: teamName });
+        await Student.update({ TeamId: team.TeamId }, { where: { UserId: userIds } });
 
-    await Student.update({ TeamId: team.TeamId }, { where: { UserId: userId } });
-
-    return res.status(201).json({ message: "Team created successfully", team });
-  } catch (error) {
-    return res.status(500).json({ message: "Error creating team", error });
-  }
+        res.status(201).json({ message: "Team created successfully", team });
+    } catch (error) {
+        res.status(500).json({ message: "Error creating team", error });
+    }
 });
 
 
-app.post("/api/create-project", async (req, res) => {
-  const { title, teamId, grade } = req.body;
-  if (!title || !teamId) {
-    return res.status(400).json({ message: "Title and team Id are required" });
-  }
 
-  try {
-    const project = await Project.create({
-      Title: title,
-      TeamId: teamId,
-      Grade: grade || null,
-    });
+app.post("/api/createproject", async (req, res) => {
+    const { title, teamId } = req.body;
+    if (!title || !teamId) {
+        return res.status(400).json({ message: "Title and Team ID are required" });
+    }
 
-    return res.status(201).json({ message: "Project created successfully", project });
-  } catch (error) {
-    return res.status(500).json({ message: "Error creating project", error });
-  }
+    try {
+        const project = await Project.create({ Title: title, TeamId: teamId });
+        res.status(201).json({ message: "Project created successfully", project });
+    } catch (error) {
+        res.status(500).json({ message: "Error creating project", error });
+    }
 });
 
 
 app.get("/api/projects/:teamId", async (req, res) => {
-  const { teamId } = req.params;
+    const { teamId } = req.params;
 
-  try {
-    const projects = await Project.findAll({ where: { TeamId: teamId } });
+    try {
+        const projects = await Project.findAll({ where: { TeamId: teamId } });
+        if (!projects.length) {
+            return res.status(404).json({ message: "No projects found for this team" });
+        }
 
-    if (!projects.length) {
-      return res.status(404).json({ message: "No projects found for this team" });
+        res.status(200).json({ projects });
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching projects", error });
     }
-
-    return res.status(200).json({ projects });
-  } catch (error) {
-    return res.status(500).json({ message: "Error fetching projects", error });
-  }
 });
 
 
-app.get("/api/grades/:projectId", async (req, res) => {
-  const { projectId } = req.params;
-
-  try {
-    const grades = await Grade.findAll({ where: { ProjectId: projectId } });
-
-    if (!grades.length) {
-      return res.status(404).json({ message: "No grades found for this project" });
-    }
-
-    return res.status(200).json({ message: "Grades endpoint is working!" });
-  } catch (error) {
-    return res.status(500).json({ message: "Error fetching grades", error });
-  }
-});
-app.post("/api/assign-jury",async(req,res)=>{
-  const{userId,projectId}=req.body;
-  if(!userId || !projectId){
-    return res.status(400).json({ message: "User Id and project Id are required" });
-  }
-
-  try {
-    const jury = await Jury.create({
-      UserId: userId,
-      ProjectId: projectId,
-    });
-
-    return res.status(201).json({ message: "Jury assigned successfully", jury });
-  } catch (error) {
-    return res.status(500).json({ message: "Error assigning jury", error });
-  }
-});
-
-app.post("/api/notifications", async (req, res) => {
-  const { userId, message } = req.body;
-  if (!userId || !message) {
-    return res.status(400).json({ message: "User Id and message are required" });
-  }
-
-  try {
-    const notification = await Notification.create({
-      UserId: userId,
-      Message: message,
-      IsRead: false, 
-    });
-
-    return res.status(201).json({ message: "Notification created successfully", notification });
-  } catch (error) {
-    return res.status(500).json({ message: "Error creating notification", error });
-  }
-});
-
-app.get("/api/notifications/:userId", async (req, res) => {
-  const { userId } = req.params;
-
-  try {
-    const notifications = await Notification.findAll({ where: { UserId: userId } });
-
-    if (!notifications.length) {
-      return res.status(404).json({ message: "No notifications found for this user" });
-    }
-
-    return res.status(200).json({ notifications });
-  } catch (error) {
-    return res.status(500).json({ message: "Error fetching notifications", error });
-  }
-});
 app.post("/api/deliverables", async (req, res) => {
-  const { projectId, title, description } = req.body;
-  if (!projectId || !title) {
-    return res.status(400).json({ message: "Project Id and title are required" });
-  }
-
-  try {
-    const deliverable = await Deliverable.create({
-      ProjectId: projectId,
-      Title: title,
-      Description: description || null,
-    });
-
-    return res.status(201).json({ message: "Deliverable created successfully", deliverable });
-  } catch (error) {
-    return res.status(500).json({ message: "Error creating deliverable", error });
-  }
-});
-app.get("/api/deliverables/:projectId", async (req, res) => {
-  const { projectId } = req.params;
-
-  try {
-    const deliverables = await Deliverable.findAll({ where: { ProjectId: projectId } });
-
-    if (!deliverables.length) {
-      return res.status(404).json({ message: "No deliverables found for this project" });
+    const { projectId, title, description } = req.body;
+    if (!projectId || !title) {
+        return res.status(400).json({ message: "Project ID and Title are required" });
     }
 
-    return res.status(200).json({ deliverables });
-  } catch (error) {
-    return res.status(500).json({ message: "Error fetching deliverables", error });
-  }
+    try {
+        const deliverable = await Deliverable.create({ ProjectId: projectId, Title: title, Description: description || null });
+        res.status(201).json({ message: "Deliverable created successfully", deliverable });
+    } catch (error) {
+        res.status(500).json({ message: "Error creating deliverable", error });
+    }
 });
 
 
-//TO DO: CALCULATE THE FINAL GRADE
+app.post("/api/assignjury", async (req, res) => {
+    const { userId, projectId } = req.body;
+    if (!userId || !projectId) {
+        return res.status(400).json({ message: "User ID and Project ID are required" });
+    }
+
+    try {
+        const jury = await Jury.create({ UserId: userId, ProjectId: projectId });
+        res.status(201).json({ message: "Jury assigned successfully", jury });
+    } catch (error) {
+        res.status(500).json({ message: "Error assigning jury", error });
+    }
+});
 
 
-// app.listen(port, () => {
-//   console.log(`Anonymous Grading App is running on port ${port}`);
-// });
-app.listen(port);// cred ca sunt the same astea 2
+app.post("/api/grade", async (req, res) => {
+    const { projectId, juryId, value } = req.body;
+    if (!projectId || !juryId || value === undefined) {
+        return res.status(400).json({ message: "Project ID, Jury ID, and Value are required" });
+    }
+
+    try {
+        const grade = await Grade.create({ ProjectId: projectId, JuryId: juryId, Value: value });
+        res.status(201).json({ message: "Grade submitted successfully", grade });
+    } catch (error) {
+        res.status(500).json({ message: "Error submitting grade", error });
+    }
+});
+
+
+app.get("/api/project-grade/:projectId", async (req, res) => {
+    const { projectId } = req.params;
+
+    try {
+        const grades = await Grade.findAll({ where: { ProjectId: projectId } });
+        if (grades.length < 3) {
+            return res.status(400).json({ message: "Not enough grades to calculate final grade" });
+        }
+
+        const values = grades.map(g => g.Value).sort((a, b) => a - b);
+        const finalGrade = values.slice(1, -1).reduce((a, b) => a + b, 0) / (values.length - 2);
+
+        res.status(200).json({ finalGrade });
+    } catch (error) {
+        res.status(500).json({ message: "Error calculating final grade", error });
+    }
+});
+
+
+app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+});

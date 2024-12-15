@@ -1,24 +1,13 @@
-import { DataTypes } from "sequelize";
-import sequelize from "../config/database.js";
-
-const Team=sequelize.define(
-    "Team",{
-        TeamId:{
-            type: DataTypes.INTEGER,
+export default (sequelize, Sequelize) => {
+    return sequelize.define("Team", {
+        TeamId: {
+            type: Sequelize.INTEGER,
             primaryKey: true,
             autoIncrement: true,
         },
-        TeamName:{
-            type: DataTypes.STRING(30),
-            allowNull: true,
-            defaultValue: "No Team",
+        TeamName: {
+            type: Sequelize.STRING,
+            allowNull: false,
         },
-        ProjectID: {
-            type: DataTypes.INTEGER,
-            allowNull: true,
-            defaultValue: null,
-        },
-    },
-    { timestamps: false }
-);
-export default Team;
+    });
+};
