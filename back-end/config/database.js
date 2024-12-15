@@ -2,7 +2,7 @@ import { Sequelize } from "sequelize";
 
 const sequelize = new Sequelize({
     dialect: "sqlite",
-    storage: "./database/database.db", 
+    storage: "./database.db", 
 });
 
 export default sequelize;

@@ -1,17 +1,24 @@
-export default (sequelize, Sequelize) => {
-    return sequelize.define("Notification", {
-        NotificationId: {
-            type: Sequelize.INTEGER,
-            primaryKey: true,
-            autoIncrement: true,
-        },
-        Message: {
-            type: Sequelize.STRING,
-            allowNull: false,
-        },
-        IsRead: {
-            type: Sequelize.BOOLEAN,
-            defaultValue: false,
-        },
-    });
-};
+import { DataTypes } from "sequelize";
+import sequelize from "../config/database.js";
+
+const Notification = sequelize.define("Notification", {
+    NotificationId: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+    },
+    UserId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+    },
+    Message: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
+    IsRead: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+    },
+});
+
+export default Notification;
