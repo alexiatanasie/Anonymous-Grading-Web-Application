@@ -1,17 +1,23 @@
 import express from "express";
 import cors from "cors";
-import models from "./models/index.js"; 
+import * as models from "./models/index.js";
 
 const app = express();
 const port = 8000;
 
-
 app.use(cors());
 app.use(express.json());
 
+const { sequelize, User, Student, Professor, Jury, Grade, Team, Project, Notification, Deliverable } = models;
 
-const { User, Student, Professor, Jury, Grade, Team, Project, Notification, Deliverable } = models;
-
+sequelize
+    .sync({ alter: true })
+    .then(() => {
+        console.log("Database synchronized!");
+    })
+    .catch((error) => {
+        console.error("Error synchronizing database:", error);
+    });
 
 app.post("/api/register", async (req, res) => {
     const { username, password, email, userType } = req.body;
@@ -33,7 +39,6 @@ app.post("/api/register", async (req, res) => {
     }
 });
 
-
 app.post("/api/login", async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -52,9 +57,8 @@ app.post("/api/login", async (req, res) => {
     }
 });
 
-
 app.post("/api/createteam", async (req, res) => {
-    const { teamName, userIds } = req.body; 
+    const { teamName, userIds } = req.body;
     if (!teamName || !userIds || !userIds.length) {
         return res.status(400).json({ message: "Team name and user IDs are required" });
     }
@@ -69,8 +73,6 @@ app.post("/api/createteam", async (req, res) => {
     }
 });
 
-
-
 app.post("/api/createproject", async (req, res) => {
     const { title, teamId } = req.body;
     if (!title || !teamId) {
@@ -84,7 +86,6 @@ app.post("/api/createproject", async (req, res) => {
         res.status(500).json({ message: "Error creating project", error });
     }
 });
-
 
 app.get("/api/projects/:teamId", async (req, res) => {
     const { teamId } = req.params;
@@ -101,7 +102,6 @@ app.get("/api/projects/:teamId", async (req, res) => {
     }
 });
 
-
 app.post("/api/deliverables", async (req, res) => {
     const { projectId, title, description } = req.body;
     if (!projectId || !title) {
@@ -115,7 +115,6 @@ app.post("/api/deliverables", async (req, res) => {
         res.status(500).json({ message: "Error creating deliverable", error });
     }
 });
-
 
 app.post("/api/assignjury", async (req, res) => {
     const { userId, projectId } = req.body;
@@ -131,7 +130,6 @@ app.post("/api/assignjury", async (req, res) => {
     }
 });
 
-
 app.post("/api/grade", async (req, res) => {
     const { projectId, juryId, value } = req.body;
     if (!projectId || !juryId || value === undefined) {
@@ -146,7 +144,6 @@ app.post("/api/grade", async (req, res) => {
     }
 });
 
-
 app.get("/api/project-grade/:projectId", async (req, res) => {
     const { projectId } = req.params;
 
@@ -156,7 +153,7 @@ app.get("/api/project-grade/:projectId", async (req, res) => {
             return res.status(400).json({ message: "Not enough grades to calculate final grade" });
         }
 
-        const values = grades.map(g => g.Value).sort((a, b) => a - b);
+        const values = grades.map((g) => g.Value).sort((a, b) => a - b);
         const finalGrade = values.slice(1, -1).reduce((a, b) => a + b, 0) / (values.length - 2);
 
         res.status(200).json({ finalGrade });
@@ -164,7 +161,6 @@ app.get("/api/project-grade/:projectId", async (req, res) => {
         res.status(500).json({ message: "Error calculating final grade", error });
     }
 });
-
 
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
