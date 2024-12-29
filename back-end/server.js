@@ -10,15 +10,21 @@ app.use(express.json());
 
 const { sequelize, User, Student, Professor, Jury, Grade, Team, Project, Notification, Deliverable } = models;
 
+// Sync database
 sequelize
     .sync({ alter: true })
-    .then(() => {
-        console.log("Database synchronized!");
-    })
-    .catch((error) => {
-        console.error("Error synchronizing database:", error);
-    });
+    .then(() => console.log("Database synchronized!"))
+    .catch((error) => console.error("Error synchronizing database:", error));
 
+// Middleware for permission verification
+const isJuryMember = async (juryId, userId) => {
+    const jury = await Jury.findOne({ where: { JuryId: juryId, UserId: userId } });
+    return !!jury;
+};
+
+// Routes
+
+// Register User
 app.post("/api/register", async (req, res) => {
     const { username, password, email, userType } = req.body;
     if (!username || !password || !email || !userType) {
@@ -27,11 +33,8 @@ app.post("/api/register", async (req, res) => {
 
     try {
         const user = await User.create({ Username: username, Password: password, Email: email, UserType: userType });
-        if (userType === "professor") {
-            await Professor.create({ UserId: user.UserId });
-        } else if (userType === "student") {
-            await Student.create({ UserId: user.UserId });
-        }
+        if (userType === "professor") await Professor.create({ UserId: user.UserId });
+        else if (userType === "student") await Student.create({ UserId: user.UserId });
 
         res.status(201).json({ message: "User registered successfully", user });
     } catch (error) {
@@ -39,111 +42,101 @@ app.post("/api/register", async (req, res) => {
     }
 });
 
-app.post("/api/login", async (req, res) => {
-    const { email, password } = req.body;
-    if (!email || !password) {
-        return res.status(400).json({ message: "Email and password are required" });
-    }
-
-    try {
-        const user = await User.findOne({ where: { Email: email } });
-        if (!user || user.Password !== password) {
-            return res.status(401).json({ message: "Invalid credentials" });
-        }
-
-        res.status(200).json({ message: "Login successful", user });
-    } catch (error) {
-        res.status(500).json({ message: "Error logging in", error });
-    }
-});
-
-app.post("/api/createteam", async (req, res) => {
-    const { teamName, userIds } = req.body;
-    if (!teamName || !userIds || !userIds.length) {
-        return res.status(400).json({ message: "Team name and user IDs are required" });
-    }
-
-    try {
-        const team = await Team.create({ TeamName: teamName });
-        await Student.update({ TeamId: team.TeamId }, { where: { UserId: userIds } });
-
-        res.status(201).json({ message: "Team created successfully", team });
-    } catch (error) {
-        res.status(500).json({ message: "Error creating team", error });
-    }
-});
-
+// Create Project and Add Partial Deliverables
 app.post("/api/createproject", async (req, res) => {
-    const { title, teamId } = req.body;
+    const { title, teamId, deliverables } = req.body;
     if (!title || !teamId) {
         return res.status(400).json({ message: "Title and Team ID are required" });
     }
 
     try {
         const project = await Project.create({ Title: title, TeamId: teamId });
-        res.status(201).json({ message: "Project created successfully", project });
+
+        if (deliverables) {
+            for (const deliverable of deliverables) {
+                await Deliverable.create({
+                    ProjectId: project.ProjectId,
+                    Title: deliverable.title,
+                    Description: deliverable.description || null,
+                });
+            }
+        }
+
+        res.status(201).json({ message: "Project and deliverables created successfully", project });
     } catch (error) {
         res.status(500).json({ message: "Error creating project", error });
     }
 });
 
-app.get("/api/projects/:teamId", async (req, res) => {
-    const { teamId } = req.params;
+// Add Link or Video to Deliverable
+app.post("/api/deliverables/:deliverableId/link", async (req, res) => {
+    const { deliverableId } = req.params;
+    const { link } = req.body;
+    if (!link) {
+        return res.status(400).json({ message: "Link is required" });
+    }
 
     try {
-        const projects = await Project.findAll({ where: { TeamId: teamId } });
-        if (!projects.length) {
-            return res.status(404).json({ message: "No projects found for this team" });
+        const deliverable = await Deliverable.findByPk(deliverableId);
+        if (!deliverable) {
+            return res.status(404).json({ message: "Deliverable not found" });
         }
 
-        res.status(200).json({ projects });
+        deliverable.Description = `${deliverable.Description || ''}\nLink: ${link}`;
+        await deliverable.save();
+
+        res.status(200).json({ message: "Link added to deliverable", deliverable });
     } catch (error) {
-        res.status(500).json({ message: "Error fetching projects", error });
+        res.status(500).json({ message: "Error adding link", error });
     }
 });
 
-app.post("/api/deliverables", async (req, res) => {
-    const { projectId, title, description } = req.body;
-    if (!projectId || !title) {
-        return res.status(400).json({ message: "Project ID and Title are required" });
-    }
+// Random Jury Selection
+app.post("/api/assignjury-random", async (req, res) => {
+    const { projectId } = req.body;
 
     try {
-        const deliverable = await Deliverable.create({ ProjectId: projectId, Title: title, Description: description || null });
-        res.status(201).json({ message: "Deliverable created successfully", deliverable });
-    } catch (error) {
-        res.status(500).json({ message: "Error creating deliverable", error });
-    }
-});
+        const project = await Project.findByPk(projectId);
+        if (!project) return res.status(404).json({ message: "Project not found" });
 
-app.post("/api/assignjury", async (req, res) => {
-    const { userId, projectId } = req.body;
-    if (!userId || !projectId) {
-        return res.status(400).json({ message: "User ID and Project ID are required" });
-    }
+        const nonPMStudents = await Student.findAll({
+            where: { TeamId: { [sequelize.Op.ne]: project.TeamId } },
+        });
 
-    try {
-        const jury = await Jury.create({ UserId: userId, ProjectId: projectId });
-        res.status(201).json({ message: "Jury assigned successfully", jury });
+        if (nonPMStudents.length === 0) {
+            return res.status(400).json({ message: "No eligible students for jury selection" });
+        }
+
+        const selectedStudent = nonPMStudents[Math.floor(Math.random() * nonPMStudents.length)];
+        await Jury.create({ UserId: selectedStudent.UserId, ProjectId: projectId });
+
+        res.status(201).json({ message: "Random jury assigned", selectedStudent });
     } catch (error) {
         res.status(500).json({ message: "Error assigning jury", error });
     }
 });
 
+// Submit Grade by Jury Member
 app.post("/api/grade", async (req, res) => {
-    const { projectId, juryId, value } = req.body;
-    if (!projectId || !juryId || value === undefined) {
-        return res.status(400).json({ message: "Project ID, Jury ID, and Value are required" });
+    const { projectId, juryId, userId, value } = req.body;
+
+    if (!projectId || !juryId || !value || value < 1 || value > 10) {
+        return res.status(400).json({ message: "Invalid input" });
     }
 
     try {
-        const grade = await Grade.create({ ProjectId: projectId, JuryId: juryId, Value: value });
-        res.status(201).json({ message: "Grade submitted successfully", grade });
+        if (!(await isJuryMember(juryId, userId))) {
+            return res.status(403).json({ message: "You are not authorized to grade this project" });
+        }
+
+        await Grade.create({ ProjectId: projectId, JuryId: juryId, Value: value });
+        res.status(201).json({ message: "Grade submitted successfully" });
     } catch (error) {
         res.status(500).json({ message: "Error submitting grade", error });
     }
 });
 
+// Final Project Grade Calculation
 app.get("/api/project-grade/:projectId", async (req, res) => {
     const { projectId } = req.params;
 
@@ -162,6 +155,22 @@ app.get("/api/project-grade/:projectId", async (req, res) => {
     }
 });
 
+// Professor View Results (Anonymized)
+app.get("/api/professor/project-results/:projectId", async (req, res) => {
+    const { projectId } = req.params;
+
+    try {
+        const grades = await Grade.findAll({
+            where: { ProjectId: projectId },
+            attributes: ["Value"],
+        });
+        res.status(200).json({ grades });
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching results", error });
+    }
+});
+
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
 });
+
