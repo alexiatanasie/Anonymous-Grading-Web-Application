@@ -1,12 +1,12 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Navbar from "../../components/Shared/Navbar";
-import Login from "../../components/Auth/Login";
-import Register from "../../components/Auth/Register";
-import StudentWorkspace from "../../components/Workspace/StudentWorkspace";
-import ProfessorWorkspace from "../../components/Workspace/ProfessorWorkspace";
-import JuryAssignedProjects from "../../components/Grading/JuryAssignedProjects";
-import GradeProject from "../../components/Grading/GradeProject";
+import Navbar from "./components/Navbar";
+import Login from "./components/Login";
+import Register from "./components/Register";
+import StudentWorkspace from "./components/StudentWorkspace";
+import ProfessorWorkspace from "./components/ProfessorWorkspace";
+import JuryAssignedProjects from "./components/JuryAssignedProjects";
+import GradeProject from "./components/GradeProject";
 
 function App() {
     return (

@@ -1,6 +1,6 @@
 import React from "react";
-import AddProject from "../Projects/AddProject";
-import ProjectList from "../Projects/ProjectList";
+import AddProject from "./AddProject";
+import ProjectList from "./ProjectList";
 
 function StudentWorkspace() {
     return (
