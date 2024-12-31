@@ -41,34 +41,60 @@ app.post("/api/register", async (req, res) => {
         res.status(500).json({ message: "Error registering user", error });
     }
 });
+app.post("/api/login", async (req, res) => {
+    const { username, password } = req.body;
+
+    try {
+        const user = await User.findOne({ where: { Username: username } });
+
+        if (!user) {
+            return res.status(400).json({ message: "User not found" });
+        }
+
+        // Verifica parola (presupunem că este criptată cu bcrypt)
+        const isPasswordValid = await bcrypt.compare(password, user.Password);
+        if (!isPasswordValid) {
+            return res.status(400).json({ message: "Invalid password" });
+        }
+
+        const token = jwt.sign({ userId: user.UserId, userType: user.UserType }, SECRET_KEY, { expiresIn: "1h" });
+
+        res.status(200).json({
+            message: "Login successful",
+            token,
+            userType: user.UserType,
+            username: user.Username,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error during login" });
+    }
+});
 
 // Create Project and Add Partial Deliverables
 app.post("/api/createproject", async (req, res) => {
-    const { title, teamId, deliverables } = req.body;
-    if (!title || !teamId) {
-        return res.status(400).json({ message: "Title and Team ID are required" });
+    const { title, description, teamId, link } = req.body;
+
+    if (!title || !description || !teamId) {
+        return res.status(400).json({ message: "Title, Description, and Team ID are required." });
     }
 
     try {
-        const project = await Project.create({ Title: title, TeamId: teamId });
+        const project = await Project.create({
+            Title: title,
+            Description: description,
+            TeamId: teamId,
+            Link: link || null, // Save the link if provided
+        });
 
-        if (deliverables) {
-            for (const deliverable of deliverables) {
-                await Deliverable.create({
-                    ProjectId: project.ProjectId,
-                    Title: deliverable.title,
-                    Description: deliverable.description || null,
-                });
-            }
-        }
-
-        res.status(201).json({ message: "Project and deliverables created successfully", project });
+        res.status(201).json({ message: "Project created successfully", project });
     } catch (error) {
+        console.error("Error creating project:", error);
         res.status(500).json({ message: "Error creating project", error });
     }
 });
 
-// Add Link or Video to Deliverable
+// Add Link to Deliverable
 app.post("/api/deliverables/:deliverableId/link", async (req, res) => {
     const { deliverableId } = req.params;
     const { link } = req.body;
@@ -169,7 +195,9 @@ app.get("/api/professor/project-results/:projectId", async (req, res) => {
         res.status(500).json({ message: "Error fetching results", error });
     }
 });
-
+app.get("/", (req, res) => {
+    res.send("Backend works!"); 
+  });
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
 });

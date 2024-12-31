@@ -23,7 +23,7 @@ function DeliverableList({ projectId }) {
                 type="text"
                 value={newDeliverable}
                 onChange={(e) => setNewDeliverable(e.target.value)}
-                placeholder="Add deliverable"
+                placeholder="Add"
             />
             <button onClick={addDeliverable}>Add</button>
         </div>

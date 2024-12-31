@@ -1,7 +1,9 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom"; // For navigation
 
 function Login() {
     const [formData, setFormData] = useState({ username: "", password: "" });
+    const navigate = useNavigate(); // Hook for navigation
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -16,13 +18,29 @@ function Login() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(formData),
             });
+
             if (response.ok) {
+                const userData = await response.json(); // Get user data from response
                 alert("Login successful!");
+
+                // Store user data (e.g., role) in localStorage
+                localStorage.setItem("userType", userData.userType);
+                localStorage.setItem("username", userData.username);
+
+                // Navigate to appropriate workspace based on userType
+                if (userData.userType === "student") {
+                    navigate("/student-workspace");
+                } else if (userData.userType === "professor") {
+                    navigate("/professor-workspace");
+                } else {
+                    alert("Invalid user type.");
+                }
             } else {
                 alert("Login failed.");
             }
         } catch (error) {
             console.error("Error:", error);
+            alert("An error occurred during login.");
         }
     };
 

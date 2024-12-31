@@ -13,8 +13,8 @@ function App() {
         <Router>
             <Navbar />
             <Routes>
-                <Route path="/" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/login" element={<Login />} />
                 <Route path="/student-workspace" element={<StudentWorkspace />} />
                 <Route path="/professor-workspace" element={<ProfessorWorkspace />} />
                 <Route path="/jury-projects" element={<JuryAssignedProjects />} />
