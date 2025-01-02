@@ -1,5 +1,7 @@
 import express from "express";
 import cors from "cors";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 import * as models from "./models/index.js";
 
 const app = express();
@@ -8,7 +10,8 @@ const port = 8000;
 app.use(cors());
 app.use(express.json());
 
-const { sequelize, User, Student, Professor, Jury, Grade, Team, Project, Notification, Deliverable } = models;
+const { sequelize, User } = models;
+const JWT_SECRET = "your_jwt_secret";
 
 // Sync database
 sequelize
@@ -16,189 +19,170 @@ sequelize
     .then(() => console.log("Database synchronized!"))
     .catch((error) => console.error("Error synchronizing database:", error));
 
-// Middleware for permission verification
-const isJuryMember = async (juryId, userId) => {
-    const jury = await Jury.findOne({ where: { JuryId: juryId, UserId: userId } });
-    return !!jury;
-};
 
-// Routes
+const generateToken = (user) => {
+        return jwt.sign(
+            {
+                userId: user.UserId,
+                userType: user.UserType,
+            },
+            JWT_SECRET,
+            { expiresIn: "1h" }
+        );
+};
+// Middleware for Authentication
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers["authorization"];
+    const token = authHeader && authHeader.split(" ")[1];
+
+    if (!token) return res.status(401).json({ message: "No token provided" });
+
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) return res.status(403).json({ message: "Invalid token" });
+        req.user = user;
+        next();
+    });
+};
+// Middleware for Role-based Access
+const restrictAccess = (allowedRoles) => {
+    return (req, res, next) => {
+        if (!allowedRoles.includes(req.user.userType)) {
+            return res.status(403).json({ message: "Access forbidden: insufficient permissions" });
+        }
+        next();
+    };
+};
 
 // Register User
 app.post("/api/register", async (req, res) => {
     const { username, password, email, userType } = req.body;
     if (!username || !password || !email || !userType) {
+        console.error("Missing fields in request body:", req.body);
         return res.status(400).json({ message: "All fields are required" });
     }
 
     try {
-        const user = await User.create({ Username: username, Password: password, Email: email, UserType: userType });
-        if (userType === "professor") await Professor.create({ UserId: user.UserId });
-        else if (userType === "student") await Student.create({ UserId: user.UserId });
+        const existingUser = await User.findOne({ where: { Email: email } });
+        if (existingUser) {
+            console.log("Email already exists:", email);
+            return res.status(409).json({ message: "An account with this email already exists. Please login." });
+        }
 
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const user = await User.create({
+            Username: username,
+            Password: hashedPassword,
+            Email: email,
+            UserType: userType,
+        });
+
+        console.log("User created successfully:", user);
         res.status(201).json({ message: "User registered successfully", user });
     } catch (error) {
-        res.status(500).json({ message: "Error registering user", error });
+        console.error("Error during user registration:", error);
+        res.status(500).json({ message: "Internal server error" });
     }
 });
+
+
+
+// Login User
 app.post("/api/login", async (req, res) => {
-    const { username, password } = req.body;
+    const { email, password } = req.body;
+    if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+    }
 
     try {
-        const user = await User.findOne({ where: { Username: username } });
-
+        const user = await User.findOne({ where: { Email: email } });
         if (!user) {
-            return res.status(400).json({ message: "User not found" });
+            return res.status(404).json({ message: "Email does not exist" }); // Mesaj specific
         }
 
-        // Verifica parola (presupunem că este criptată cu bcrypt)
         const isPasswordValid = await bcrypt.compare(password, user.Password);
         if (!isPasswordValid) {
-            return res.status(400).json({ message: "Invalid password" });
+            return res.status(401).json({ message: "Invalid password" });
         }
 
-        const token = jwt.sign({ userId: user.UserId, userType: user.UserType }, SECRET_KEY, { expiresIn: "1h" });
+        const token = generateToken(user);
 
         res.status(200).json({
             message: "Login successful",
             token,
-            userType: user.UserType,
-            username: user.Username,
+            user: {
+                userId: user.UserId,
+                username: user.Username,
+                userType: user.UserType,
+            },
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Error during login" });
+        console.error("Error during login:", error);
+        res.status(500).json({ message: "Internal server error" });
     }
 });
 
-// Create Project and Add Partial Deliverables
-app.post("/api/createproject", async (req, res) => {
-    const { title, description, teamId, link } = req.body;
 
-    if (!title || !description || !teamId) {
-        return res.status(400).json({ message: "Title, Description, and Team ID are required." });
+// Forgot Password
+app.post("/api/forgot-password", async (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+        return res.status(400).json({ message: "Email is required" });
     }
 
     try {
-        const project = await Project.create({
-            Title: title,
-            Description: description,
-            TeamId: teamId,
-            Link: link || null, // Save the link if provided
-        });
-
-        res.status(201).json({ message: "Project created successfully", project });
-    } catch (error) {
-        console.error("Error creating project:", error);
-        res.status(500).json({ message: "Error creating project", error });
-    }
-});
-
-// Add Link to Deliverable
-app.post("/api/deliverables/:deliverableId/link", async (req, res) => {
-    const { deliverableId } = req.params;
-    const { link } = req.body;
-    if (!link) {
-        return res.status(400).json({ message: "Link is required" });
-    }
-
-    try {
-        const deliverable = await Deliverable.findByPk(deliverableId);
-        if (!deliverable) {
-            return res.status(404).json({ message: "Deliverable not found" });
+        const user = await User.findOne({ where: { Email: email } });
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
         }
 
-        deliverable.Description = `${deliverable.Description || ''}\nLink: ${link}`;
-        await deliverable.save();
+        // In a real application, send an email with a reset link
+        const resetToken = generateToken(user);
+        console.log(`Reset link: http://localhost:3000/reset-password?token=${resetToken}`);
 
-        res.status(200).json({ message: "Link added to deliverable", deliverable });
+        res.status(200).json({ message: "Password reset link sent" });
     } catch (error) {
-        res.status(500).json({ message: "Error adding link", error });
+        console.error("Error during forgot password:", error);
+        res.status(500).json({ message: "Internal server error" });
     }
 });
 
-// Random Jury Selection
-app.post("/api/assignjury-random", async (req, res) => {
-    const { projectId } = req.body;
+// Reset Password
+app.post("/api/reset-password", async (req, res) => {
+    const { username, newPassword } = req.body;
+
+    if (!username || !newPassword) {
+        return res.status(400).json({ message: "Username and new password are required." });
+    }
 
     try {
-        const project = await Project.findByPk(projectId);
-        if (!project) return res.status(404).json({ message: "Project not found" });
-
-        const nonPMStudents = await Student.findAll({
-            where: { TeamId: { [sequelize.Op.ne]: project.TeamId } },
-        });
-
-        if (nonPMStudents.length === 0) {
-            return res.status(400).json({ message: "No eligible students for jury selection" });
+        const user = await User.findOne({ where: { Username: username } });
+        if (!user) {
+            return res.status(404).json({ message: "User not found." });
         }
 
-        const selectedStudent = nonPMStudents[Math.floor(Math.random() * nonPMStudents.length)];
-        await Jury.create({ UserId: selectedStudent.UserId, ProjectId: projectId });
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        user.Password = hashedPassword;
+        await user.save();
 
-        res.status(201).json({ message: "Random jury assigned", selectedStudent });
+        res.status(200).json({ message: "Password reset successfully." });
     } catch (error) {
-        res.status(500).json({ message: "Error assigning jury", error });
+        console.error("Error during password reset:", error);
+        res.status(500).json({ message: "Internal server error." });
     }
 });
 
-// Submit Grade by Jury Member
-app.post("/api/grade", async (req, res) => {
-    const { projectId, juryId, userId, value } = req.body;
 
-    if (!projectId || !juryId || !value || value < 1 || value > 10) {
-        return res.status(400).json({ message: "Invalid input" });
-    }
 
-    try {
-        if (!(await isJuryMember(juryId, userId))) {
-            return res.status(403).json({ message: "You are not authorized to grade this project" });
-        }
-
-        await Grade.create({ ProjectId: projectId, JuryId: juryId, Value: value });
-        res.status(201).json({ message: "Grade submitted successfully" });
-    } catch (error) {
-        res.status(500).json({ message: "Error submitting grade", error });
-    }
+// Example: Professor Workspace Route
+app.get("/api/professor-workspace", restrictAccess(["professor"]), (req, res) => {
+    res.status(200).json({ message: "Welcome to the Professor Workspace" });
 });
 
-// Final Project Grade Calculation
-app.get("/api/project-grade/:projectId", async (req, res) => {
-    const { projectId } = req.params;
-
-    try {
-        const grades = await Grade.findAll({ where: { ProjectId: projectId } });
-        if (grades.length < 3) {
-            return res.status(400).json({ message: "Not enough grades to calculate final grade" });
-        }
-
-        const values = grades.map((g) => g.Value).sort((a, b) => a - b);
-        const finalGrade = values.slice(1, -1).reduce((a, b) => a + b, 0) / (values.length - 2);
-
-        res.status(200).json({ finalGrade });
-    } catch (error) {
-        res.status(500).json({ message: "Error calculating final grade", error });
-    }
+// Example: Student Workspace Route
+app.get("/api/student-workspace", restrictAccess(["student"]), (req, res) => {
+    res.status(200).json({ message: "Welcome to the Student Workspace" });
 });
 
-// Professor View Results (Anonymized)
-app.get("/api/professor/project-results/:projectId", async (req, res) => {
-    const { projectId } = req.params;
-
-    try {
-        const grades = await Grade.findAll({
-            where: { ProjectId: projectId },
-            attributes: ["Value"],
-        });
-        res.status(200).json({ grades });
-    } catch (error) {
-        res.status(500).json({ message: "Error fetching results", error });
-    }
-});
-app.get("/", (req, res) => {
-    res.send("Backend works!"); 
-  });
 app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+    console.log(`Server running on http://localhost:${port}`);
 });
-

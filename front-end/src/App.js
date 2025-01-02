@@ -6,7 +6,9 @@ import Register from "./components/Register";
 import StudentWorkspace from "./components/StudentWorkspace";
 import ProfessorWorkspace from "./components/ProfessorWorkspace";
 import JuryAssignedProjects from "./components/JuryAssignedProjects";
-import GradeProject from "./components/GradeProject";
+import ProtectedRoute from "./components/ProtectedRoute"; 
+import ForgotPassword from "./components/ForgotPassword";
+
 
 function App() {
     return (
@@ -15,10 +17,31 @@ function App() {
             <Routes>
                 <Route path="/register" element={<Register />} />
                 <Route path="/login" element={<Login />} />
-                <Route path="/student-workspace" element={<StudentWorkspace />} />
-                <Route path="/professor-workspace" element={<ProfessorWorkspace />} />
-                <Route path="/jury-projects" element={<JuryAssignedProjects />} />
-                <Route path="/grade/:projectId" element={<GradeProject />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route
+                    path="/student-workspace"
+                    element={
+                        <ProtectedRoute>
+                            <StudentWorkspace />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/professor-workspace"
+                    element={
+                        <ProtectedRoute>
+                            <ProfessorWorkspace />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/jury-projects"
+                    element={
+                        <ProtectedRoute>
+                            <JuryAssignedProjects />
+                        </ProtectedRoute>
+                    }
+                />
             </Routes>
         </Router>
     );
