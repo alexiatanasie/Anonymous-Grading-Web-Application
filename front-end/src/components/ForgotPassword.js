@@ -1,37 +1,33 @@
 import React, { useState } from "react";
 
 function ForgotPassword() {
-    const [username, setUsername] = useState("");
-    const [newPassword, setNewPassword] = useState("");
-    const [confirmationMessage, setConfirmationMessage] = useState("");
-    const [errorMessage, setErrorMessage] = useState("");
+    const [formData, setFormData] = useState({ username: "", newPassword: "" });
+    const [message, setMessage] = useState("");
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData({ ...formData, [name]: value });
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        // Validăm input-ul
-        if (!username || !newPassword) {
-            setErrorMessage("Username and new password are required.");
-            return;
-        }
 
         try {
             const response = await fetch("http://localhost:8000/api/reset-password", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, newPassword }),
+                body: JSON.stringify(formData),
             });
 
             if (response.ok) {
-                setConfirmationMessage("Password reset successfully. You can now login.");
-                setErrorMessage(""); // Resetăm erorile
+                setMessage("Password reset successfully.");
             } else {
                 const errorData = await response.json();
-                setErrorMessage(errorData.message || "Failed to reset password.");
+                setMessage(`Error: ${errorData.message}`);
             }
         } catch (error) {
             console.error("Error during password reset:", error);
-            setErrorMessage("An error occurred. Please try again.");
+            setMessage("An error occurred. Please try again.");
         }
     };
 
@@ -43,8 +39,9 @@ function ForgotPassword() {
                     Username:
                     <input
                         type="text"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
+                        name="username"
+                        value={formData.username}
+                        onChange={handleChange}
                         required
                     />
                 </label>
@@ -53,16 +50,16 @@ function ForgotPassword() {
                     New Password:
                     <input
                         type="password"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
+                        name="newPassword"
+                        value={formData.newPassword}
+                        onChange={handleChange}
                         required
                     />
                 </label>
                 <br />
                 <button type="submit">Reset Password</button>
             </form>
-            {confirmationMessage && <p style={{ color: "green" }}>{confirmationMessage}</p>}
-            {errorMessage && <p style={{ color: "red" }}>{errorMessage}</p>}
+            {message && <p>{message}</p>}
         </div>
     );
 }

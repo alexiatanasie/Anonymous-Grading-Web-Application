@@ -135,7 +135,6 @@ app.post("/api/forgot-password", async (req, res) => {
             return res.status(404).json({ message: "User not found" });
         }
 
-        // In a real application, send an email with a reset link
         const resetToken = generateToken(user);
         console.log(`Reset link: http://localhost:3000/reset-password?token=${resetToken}`);
 
@@ -160,8 +159,8 @@ app.post("/api/reset-password", async (req, res) => {
             return res.status(404).json({ message: "User not found." });
         }
 
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-        user.Password = hashedPassword;
+        const hashedPassword = await bcrypt.hash(newPassword, 10); 
+        user.Password = hashedPassword; 
         await user.save();
 
         res.status(200).json({ message: "Password reset successfully." });
