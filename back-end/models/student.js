@@ -1,27 +1,20 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("../config/database");
+import { DataTypes } from "sequelize";
+import sequelize from "../config/database.js";
 
-const Student=sequelize.define(
-    "Student",{
-        StudentId:{
-            type: DataTypes.INTEGER,
-            primaryKey: true,
-            autoIncrement: true,
-        },
-        UserId:{
-            type: DataTypes.INTEGER,
-            allowNull: true,
-        },
-        TeamId:{
-            type: DataTypes.INTEGER,
-            allowNull: true,
-        },
-        JuryId:{
-            type: DataTypes.INTEGER,
-            allowNull: true,
-        },
+const Student = sequelize.define("Student", {
+    StudentId: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
     },
-    { timestamps: false}
-);
+    TeamId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+    },
+    UserId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+    },
+});
 
-module.exports = Student;
+export default Student;
