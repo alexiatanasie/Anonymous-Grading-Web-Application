@@ -27,10 +27,12 @@ function Login() {
                 },
                 body: JSON.stringify(formData),
             });
-
+    
             if (response.ok) {
                 const data = await response.json();
                 localStorage.setItem("token", data.token);
+                localStorage.setItem("userType", data.user.userType); // Save userType for navbar logic
+    
                 if (data.user.userType === "student") {
                     window.location.href = "/student-workspace";
                 } else if (data.user.userType === "professor") {
@@ -38,14 +40,14 @@ function Login() {
                 }
             } else {
                 const errorData = await response.json();
-                setErrorMessage(`Login failed: ${errorData.message}`);
+                setErrorMessage(errorData.message); 
             }
         } catch (error) {
             console.error("Error during login:", error);
             setErrorMessage("An error occurred. Please try again.");
         }
     };
-
+    
     return (
         <div className="login-container">
             <h2>Login</h2>
@@ -86,6 +88,9 @@ function Login() {
             )}
             <p>
                 Don't have an account? <Link to="/register">Register here</Link>
+            </p>
+            <p>
+                Forgot your password? <a href="/forgot-password">Reset it here</a>
             </p>
         </div>
     );
