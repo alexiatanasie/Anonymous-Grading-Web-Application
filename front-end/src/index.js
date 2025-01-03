@@ -13,6 +13,7 @@ root.render(
 );
 
 axios.defaults.baseURL = 'http://localhost:8000';
+axios.defaults.headers.post['Content-Type'] = 'application/json';
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))

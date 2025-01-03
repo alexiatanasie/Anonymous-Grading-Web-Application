@@ -3,7 +3,9 @@ import cors from "cors";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import * as models from "./models/index.js";
-
+import { Sequelize } from 'sequelize';
+import Team from './models/team.js';
+import Student from './models/student.js';
 const app = express();
 const port = 8000;
 
@@ -64,28 +66,39 @@ const restrictAccess = (allowedRoles) => {
     };
 };
 
+
+
 // Register User
-app.post('/register', async (req, res) => {
+app.post("/api/register", async (req, res) => {
+    const { username, password, email, userType } = req.body;
+    if (!username || !password || !email || !userType) {
+        console.error("Missing fields in request body:", req.body);
+        return res.status(400).json({ message: "All fields are required" });
+    }
+
     try {
-        const { email, password, name } = req.body;
-
-        // Verifică dacă există deja un utilizator cu acest email
         const existingUser = await User.findOne({ where: { Email: email } });
-
         if (existingUser) {
-            return res.status(400).json({ message: 'An account with this email already exists. Please login.' });
+            console.log("Email already exists:", email);
+            return res.status(409).json({ message: "An account with this email already exists. Please login." });
         }
 
-        // Hash-ul parolei și crearea utilizatorului
         const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = await User.create({ Email: email, Password: hashedPassword, Username: name, UserType: "student" });
+        const user = await User.create({
+            Username: username,
+            Password: hashedPassword,
+            Email: email,
+            UserType: userType,
+        });
 
-        return res.status(201).json({ message: 'Account created successfully', user: newUser });
+        console.log("User created successfully:", user);
+        res.status(201).json({ message: "User registered successfully", user });
     } catch (error) {
-        console.error('Registration Error:', error);
-        res.status(500).json({ message: 'Internal server error. Please try again later.' });
+        console.error("Error during user registration:", error);
+        res.status(500).json({ message: "Internal server error" });
     }
 });
+
 
 // Login User
 app.post("/api/login", async (req, res) => {
@@ -247,5 +260,71 @@ app.listen(port, () => {
         console.error(`Port ${port} is already in use. Please use a different port.`);
     } else {
         console.error('Server error:', err);
+    }
+});
+
+app.post('/create-team', async (req, res) => {
+    try {
+        const { name, description } = req.body;
+        const newTeam = await Team.create({ name, description });
+        res.status(201).json({ message: 'Team created successfully', team: newTeam });
+    } catch (error) {
+        console.error('Error creating team:', error);
+        res.status(500).json({ message: 'Failed to create team' });
+    }
+});
+
+app.get('/students/available', async (req, res) => {
+    try {
+        const availableStudents = await Student.findAll({
+            where: { TeamId: null }, // Fetch students not assigned to any team
+            include: [
+                {
+                    model: User,
+                    attributes: ['Username'],
+                }
+            ],
+            attributes: ['StudentId', 'UserId'],
+        });
+
+        res.status(200).json(availableStudents);
+    } catch (error) {
+        console.error('Error fetching available students:', error);
+        res.status(500).json({ message: 'Failed to fetch available students' });
+    }
+});
+
+
+app.post('/teams', async (req, res) => {
+    try {
+        const { name, members } = req.body;
+
+        // Validate inputs
+        if (!name || members.length === 0) {
+            return res.status(400).json({ message: 'Team name and members are required' });
+        }
+
+        // Check for duplicate team name
+        const existingTeam = await Team.findOne({ where: { name } });
+        if (existingTeam) {
+            return res.status(400).json({ message: 'Team name already exists' });
+        }
+
+        // Create the team
+        const newTeam = await Team.create({ name });
+
+        // Assign students to the team
+        await Student.update(
+            { TeamId: newTeam.id },
+            { where: { StudentId: members } }
+        );
+
+        res.status(201).json({
+            message: 'Team created successfully',
+            teamId: newTeam.id,
+        });
+    } catch (error) {
+        console.error('Error creating team:', error);
+        res.status(500).json({ message: 'Failed to create team' });
     }
 });
