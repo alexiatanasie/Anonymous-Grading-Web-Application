@@ -13,14 +13,25 @@ app.use(express.json());
 const { sequelize, User } = models;
 const JWT_SECRET = "your_jwt_secret";
 
-// Sync database
+// // Sync database
+// sequelize
+//     .sync({ alter: true })
+//     .then(() => console.log("Database synchronized!"))
+//     .catch((error) => console.error("Error synchronizing database:", error));
+
 sequelize
-    .sync({ alter: true })
-    .then(() => console.log("Database synchronized!"))
-    .catch((error) => console.error("Error synchronizing database:", error));
+    .sync({ alter: false }) // Avoid altering tables if not necessary
+    .then(async () => {
+        console.log("Database synchronized!");
+        // Ensure Users_backup is clean
+        await sequelize.query("DROP TABLE IF EXISTS Users_backup;");
+    })
+    .catch((error) => {
+        console.error("Error synchronizing database:", error);
+    });
 
 
-const generateToken = (user) => {
+ const generateToken = (user) => {
         return jwt.sign(
             {
                 userId: user.UserId,
@@ -54,60 +65,50 @@ const restrictAccess = (allowedRoles) => {
 };
 
 // Register User
-app.post("/api/register", async (req, res) => {
-    const { username, password, email, userType } = req.body;
-    if (!username || !password || !email || !userType) {
-        console.error("Missing fields in request body:", req.body);
-        return res.status(400).json({ message: "All fields are required" });
-    }
-
+app.post('/register', async (req, res) => {
     try {
+        const { email, password, name } = req.body;
+
+        // Verifică dacă există deja un utilizator cu acest email
         const existingUser = await User.findOne({ where: { Email: email } });
+
         if (existingUser) {
-            console.log("Email already exists:", email);
-            return res.status(409).json({ message: "An account with this email already exists. Please login." });
+            return res.status(400).json({ message: 'An account with this email already exists. Please login.' });
         }
 
+        // Hash-ul parolei și crearea utilizatorului
         const hashedPassword = await bcrypt.hash(password, 10);
-        const user = await User.create({
-            Username: username,
-            Password: hashedPassword,
-            Email: email,
-            UserType: userType,
-        });
+        const newUser = await User.create({ Email: email, Password: hashedPassword, Username: name, UserType: "student" });
 
-        console.log("User created successfully:", user);
-        res.status(201).json({ message: "User registered successfully", user });
+        return res.status(201).json({ message: 'Account created successfully', user: newUser });
     } catch (error) {
-        console.error("Error during user registration:", error);
-        res.status(500).json({ message: "Internal server error" });
+        console.error('Registration Error:', error);
+        res.status(500).json({ message: 'Internal server error. Please try again later.' });
     }
 });
-
-
 
 // Login User
 app.post("/api/login", async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {
-        return res.status(400).json({ message: "Email and password are required" });
+        return res.status(400).json({ message: "Email and password are required." });
     }
 
     try {
         const user = await User.findOne({ where: { Email: email } });
         if (!user) {
-            return res.status(404).json({ message: "Email does not exist" }); // Mesaj specific
+            return res.status(404).json({ message: "Email does not exist." }); 
         }
 
         const isPasswordValid = await bcrypt.compare(password, user.Password);
         if (!isPasswordValid) {
-            return res.status(401).json({ message: "Invalid password" });
+            return res.status(401).json({ message: "Incorrect password." }); 
         }
 
         const token = generateToken(user);
 
         res.status(200).json({
-            message: "Login successful",
+            message: "Login successful.",
             token,
             user: {
                 userId: user.UserId,
@@ -117,10 +118,9 @@ app.post("/api/login", async (req, res) => {
         });
     } catch (error) {
         console.error("Error during login:", error);
-        res.status(500).json({ message: "Internal server error" });
+        res.status(500).json({ message: "Internal server error." });
     }
 });
-
 
 // Forgot Password
 app.post("/api/forgot-password", async (req, res) => {
@@ -172,16 +172,80 @@ app.post("/api/reset-password", async (req, res) => {
 
 
 
-// Example: Professor Workspace Route
-app.get("/api/professor-workspace", restrictAccess(["professor"]), (req, res) => {
-    res.status(200).json({ message: "Welcome to the Professor Workspace" });
-});
+// Professor Workspace Route
+app.get(
+    "/api/professor-workspace",
+    authenticateToken,
+    restrictAccess(["professor"]),
+    async (req, res) => {
+        try {
+            const professor = await models.Professor.findOne({ where: { UserId: req.user.userId } });
+            if (!professor) {
+                return res.status(404).json({ message: "Professor not found" });
+            }
+            const projects = await models.Project.findAll({ where: { ProfessorId: professor.ProfessorId } });
+            res.status(200).json({ message: "Welcome to the Professor Workspace", projects });
+        } catch (error) {
+            console.error("Error fetching professor workspace data:", error);
+            res.status(500).json({ message: "Internal server error" });
+        }
+    }
+);
 
-// Example: Student Workspace Route
-app.get("/api/student-workspace", restrictAccess(["student"]), (req, res) => {
-    res.status(200).json({ message: "Welcome to the Student Workspace" });
-});
+// Student Workspace Route
+app.get(
+    "/api/student-workspace",
+    authenticateToken,
+    restrictAccess(["student"]),
+    async (req, res) => {
+        try {
+            const student = await models.Student.findOne({ where: { UserId: req.user.userId } });
+            if (!student) {
+                return res.status(404).json({ message: "Student not found" });
+            }
+            const projects = await models.Project.findAll({ where: { StudentId: student.StudentId } });
+            res.status(200).json({ message: "Welcome to the Student Workspace", projects });
+        } catch (error) {
+            console.error("Error fetching student workspace data:", error);
+            res.status(500).json({ message: "Internal server error" });
+        }
+    }
+);
 
+
+//Jury Workspace Route
+app.get(
+    "/api/jury-projects",
+    authenticateToken,
+    restrictAccess(["student", "jury"]),
+    async (req, res) => {
+        try {
+            const juryAssignments = await models.Jury.findAll({ where: { UserId: req.user.userId } });
+            const projectIds = juryAssignments.map((assignment) => assignment.ProjectId);
+            const projects = await models.Project.findAll({ where: { ProjectId: projectIds } });
+            res.status(200).json({ message: "Welcome to the Jury Workspace", projects });
+        } catch (error) {
+            console.error("Error fetching jury projects:", error);
+            res.status(500).json({ message: "Internal server error" });
+        }
+    }
+);
+
+// Middleware to check the user's role for workspace routes
+const checkRole = (requiredRole) => {
+    return (req, res, next) => {
+        if (req.user.userType !== requiredRole) {
+            return res.status(403).json({ message: "Access forbidden: insufficient permissions" });
+        }
+        next();
+    };
+};
 app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
+}).on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+        console.error(`Port ${port} is already in use. Please use a different port.`);
+    } else {
+        console.error('Server error:', err);
+    }
 });
