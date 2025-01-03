@@ -10,6 +10,7 @@ const port = 8000;
 app.use(cors());
 app.use(express.json());
 
+
 const { sequelize, User } = models;
 const JWT_SECRET = "your_jwt_secret";
 
@@ -54,35 +55,26 @@ const restrictAccess = (allowedRoles) => {
 };
 
 // Register User
-app.post("/api/register", async (req, res) => {
-    const { username, password, email, userType } = req.body;
-    if (!username || !password || !email || !userType) {
-        console.error("Missing fields in request body:", req.body);
-        return res.status(400).json({ message: "All fields are required" });
-    }
-
+app.post('/register', async (req, res) => {
     try {
-        const existingUser = await User.findOne({ where: { Email: email } });
+        const { email, password, name } = req.body;
+
+        // Check if the user already exists
+        const existingUser = await User.findOne({ where: { email } });
+
         if (existingUser) {
-            console.log("Email already exists:", email);
-            return res.status(409).json({ message: "An account with this email already exists. Please login." });
+            return res.status(400).json({ message: 'Account with this email already exists.' });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const user = await User.create({
-            Username: username,
-            Password: hashedPassword,
-            Email: email,
-            UserType: userType,
-        });
-
-        console.log("User created successfully:", user);
-        res.status(201).json({ message: "User registered successfully", user });
+        // Create new user if no duplicate found
+        const newUser = await User.create({ email, password, name });
+        res.status(201).json({ message: 'Account created successfully', user: newUser });
     } catch (error) {
-        console.error("Error during user registration:", error);
-        res.status(500).json({ message: "Internal server error" });
+        console.error('Registration Error:', error);
+        res.status(500).json({ message: 'Internal server error' });
     }
 });
+
 
 
 
