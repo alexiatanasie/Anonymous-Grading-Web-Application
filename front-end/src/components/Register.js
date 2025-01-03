@@ -1,26 +1,27 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import "./Register.css"; // Importăm fișierul CSS pentru stiluri
-import axios from 'axios';
+import axios from "axios";
+import "./Register.css";
 
 function Register() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
     const [error, setError] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
 
     const handleRegister = async (e) => {
         e.preventDefault();
+        setError(''); // Resetează eroarea
+        setSuccessMessage(''); // Resetează mesajul de succes
+
         try {
-            const response = await axios.post('/register', { email, password, name });
-            alert('Registration successful!');
+            const response = await axios.post('http://localhost:8000/register', { email, password, name });
+            setSuccessMessage(response.data.message); // Mesaj de succes
         } catch (error) {
             if (error.response && error.response.status === 400) {
-                setError(error.response.data.message); // Display backend error message
-                alert(error.response.data.message); // Alert user about the duplicate account
+                setError(error.response.data.message); // Mesajul din backend (utilizator existent)
             } else {
                 setError('Registration failed. Please try again later.');
-                alert('Registration failed. Please try again later.');
             }
         }
     };
@@ -52,7 +53,8 @@ function Register() {
                 />
                 <button type="submit">Register</button>
             </form>
-            {error && <p style={{ color: 'red' }}>{error}</p>}
+            {error && <p style={{ color: "red" }}>{error}</p>}
+            {successMessage && <p style={{ color: "green" }}>{successMessage}</p>}
         </div>
     );
 }
