@@ -137,17 +137,16 @@ app.post("/api/login", async (req, res) => {
 app.get('/students/available', async (req, res) => {
     try {
         const availableStudents = await Student.findAll({
-            where: { 
-                TeamId: null,
-                UserId: { [Sequelize.Op.ne]: null } // Ensure UserId is not null
+            where: {
+                TeamId: null, // Doar studenții care nu au deja o echipă
             },
             include: [
                 {
-                    model: User,
-                    attributes: ['Username'],
-                }
+                    model: User, // Include informațiile din tabela Users
+                    attributes: ['Username'], // Returnează doar Username
+                },
             ],
-            attributes: ['StudentId', 'UserId'],
+            attributes: ['StudentId', 'UserId'], // Alege ce câmpuri să returnezi din Students
         });
 
         res.status(200).json(availableStudents);
@@ -158,24 +157,59 @@ app.get('/students/available', async (req, res) => {
 });
 
 
-
 //create Team
 app.post('/api/teams', async (req, res) => {
-    const { name, memberIds } = req.body;
+    const { name, members } = req.body;
 
-    if (!name || !memberIds || memberIds.length < 1) {
-        return res.status(400).json({ message: "Team name and members are required" });
+    if (!name || !members || members.length !== 3) {
+        console.error("Invalid team creation data:", { name, members });
+        return res.status(400).json({ message: "Team name is required, and exactly 3 members must be selected." });
     }
 
-    const team = await Team.create({ name });
+    try {
+        const newTeam = await Team.create({ name });
 
-    await Student.update(
-        { TeamId: team.TeamId },
-        { where: { StudentId: memberIds } }
-    );
+        await Student.update(
+            { TeamId: newTeam.id }, 
+            { where: { StudentId: members } }
+        );
 
-    res.status(201).json({ message: "Team created successfully", team });
+        console.log("Team created successfully:", newTeam);
+        res.status(201).json({ message: "Team created successfully", teamId: newTeam.id });
+    } catch (error) {
+        console.error("Error creating team:", error);
+        res.status(500).json({ message: "Failed to create team" });
+    }
 });
+
+app.post("/api/createproject", async (req, res) => {
+    const { title, description, teamName, link } = req.body;
+
+    if (!title || !description || !teamName) {
+        return res.status(400).json({ message: "Title, Description, and Team Name are required" });
+    }
+
+    try {
+        const team = await Team.findOne({ where: { name: teamName } });
+
+        if (!team) {
+            return res.status(404).json({ message: "Team not found" });
+        }
+
+        const project = await Project.create({
+            Title: title,
+            Description: description,
+            TeamId: team.id,
+            Link: link,
+        });
+
+        res.status(201).json({ message: "Project created successfully", project });
+    } catch (error) {
+        console.error("Error creating project:", error);
+        res.status(500).json({ message: "Failed to create project." });
+    }
+});
+
 
 app.post('/api/projects', async (req, res) => {
     const { title, teamId } = req.body;

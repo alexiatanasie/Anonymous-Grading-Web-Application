@@ -9,6 +9,7 @@ import JuryAssignedProjects from "./components/JuryAssignedProjects";
 import GradeProject from "./components/GradeProject"; 
 import ProtectedRoute from "./components/ProtectedRoute";
 import CreateTeam from "./components/CreateTeam";
+import Logout from "./components/Logout";
 
 function App() {
     return (
@@ -72,6 +73,8 @@ function App() {
                         </ProtectedRoute>
                     }
                 />
+             <Route path="/logout" element={<Logout />} />
+
             </Routes>
         </Router>
     );
