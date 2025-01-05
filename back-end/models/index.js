@@ -1,6 +1,7 @@
 import sequelize from "../config/database.js";
 import { Sequelize, DataTypes } from 'sequelize';
 
+
 import userModel from "./user.js";
 import studentModel from "./student.js";
 import professorModel from "./professor.js";
