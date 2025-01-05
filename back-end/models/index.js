@@ -41,6 +41,7 @@ Jury.belongsTo(Project, { foreignKey: "ProjectId" });
 Grade.belongsTo(Jury, { foreignKey: "JuryId" });
 Grade.belongsTo(Project, { foreignKey: "ProjectId" });
 
+
 export {
     sequelize,
     Sequelize,
@@ -50,6 +51,6 @@ export {
     Team,
     Project,
     Jury,
-    Grade,
-    
+    Grade,
+    
 };

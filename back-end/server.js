@@ -5,7 +5,6 @@ import jwt from "jsonwebtoken";
 import { sequelize, Sequelize, User, Student, Professor, Team } from "./models/index.js";
 
 
-
 const app = express();
 const port = 8000;
 
@@ -16,7 +15,7 @@ const JWT_SECRET = "your_jwt_secret";
 app.use(cors());
 app.use(express.json());
 
-// ✅ Database Initialization
+// Database Initialization
 sequelize
     .authenticate()
     .then(() => {
@@ -166,31 +165,122 @@ app.get('/students/available', async (req, res) => {
 
 //create Team
 app.post('/api/teams', async (req, res) => {
+    const { name, memberIds } = req.body;
+
+    if (!name || !memberIds || memberIds.length < 1) {
+        return res.status(400).json({ message: "Team name and members are required" });
+    }
+
+    const team = await Team.create({ name });
+
+    await Student.update(
+        { TeamId: team.TeamId },
+        { where: { StudentId: memberIds } }
+    );
+
+    res.status(201).json({ message: "Team created successfully", team });
+});
+
+app.post('/api/projects', async (req, res) => {
+    const { title, teamId } = req.body;
+
+    if (!title || !teamId) {
+        return res.status(400).json({ message: "Title and team ID are required" });
+    }
+
+    const project = await Project.create({ Title: title, TeamId: teamId });
+
+    res.status(201).json({ message: "Project created successfully", project });
+});
+
+app.post('/api/projects/:projectId/jury', async (req, res) => {
+    const { projectId } = req.params;
+
+    const students = await Student.findAll({ where: { TeamId: null } });
+    const juryMembers = students.sort(() => 0.5 - Math.random()).slice(0, 3);
+
+    for (const student of juryMembers) {
+        await Jury.create({ UserId: student.UserId, ProjectId: projectId });
+    }
+
+    res.status(200).json({ message: "Jury assigned successfully", jury: juryMembers });
+});
+app.get("/api/jury-projects", authenticateToken, restrictAccess(["jury"]), async (req, res) => {
     try {
-        const { name, members } = req.body;
+        const juryAssignments = await Jury.findAll({
+            where: { UserId: req.user.userId },
+            include: [
+                {
+                    model: Project,
+                    include: [
+                        {
+                            model: Team,
+                            attributes: ["name"],
+                        },
+                    ],
+                },
+            ],
+        });
 
-        if (!name || members.length === 0) {
-            return res.status(400).json({ message: 'Team name and members are required' });
-        }
+        const projects = juryAssignments.map((assignment) => ({
+            id: assignment.Project.ProjectId,
+            title: assignment.Project.Title,
+            teamName: assignment.Project.Team.name,
+        }));
 
-        const existingTeam = await Team.findOne({ where: { name } });
-        if (existingTeam) {
-            return res.status(400).json({ message: 'Team name already exists' });
-        }
-
-        const newTeam = await Team.create({ name });
-
-        await Student.update(
-            { TeamId: newTeam.TeamId }, 
-            { where: { StudentId: members } }
-        );
-
-        res.status(201).json({ message: 'Team created successfully', teamId: newTeam.TeamId });
+        res.status(200).json({ projects });
     } catch (error) {
-        console.error('Error creating team:', error);
-        res.status(500).json({ message: 'Failed to create team' });
+        console.error("Error fetching jury projects:", error);
+        res.status(500).json({ message: "Failed to fetch jury projects." });
     }
 });
+
+app.post("/api/grade/:projectId", authenticateToken, restrictAccess(["jury"]), async (req, res) => {
+    const { projectId } = req.params;
+    const { gradeValue } = req.body;
+
+    if (!gradeValue || gradeValue < 1 || gradeValue > 10) {
+        return res.status(400).json({ message: "Grade must be between 1 and 10." });
+    }
+
+    try {
+        const jury = await Jury.findOne({
+            where: {
+                UserId: req.user.userId,
+                ProjectId: projectId,
+            },
+        });
+
+        if (!jury) {
+            return res.status(404).json({ message: "Jury assignment not found for this project." });
+        }
+
+        await Grade.create({ JuryId: jury.JuryId, ProjectId: projectId, GradeValue: gradeValue });
+        res.status(201).json({ message: "Grade submitted successfully." });
+    } catch (error) {
+        console.error("Error submitting grade:", error);
+        res.status(500).json({ message: "Failed to submit grade." });
+    }
+});
+
+app.post('/api/grades', async (req, res) => {
+    const { juryId, projectId, gradeValue } = req.body;
+
+    await Grade.create({ JuryId: juryId, ProjectId: projectId, GradeValue: gradeValue });
+
+    res.status(201).json({ message: "Grade submitted successfully" });
+});
+app.get('/api/projects/:projectId/final-grade', async (req, res) => {
+    const { projectId } = req.params;
+
+    const grades = await Grade.findAll({ where: { ProjectId: projectId } });
+    const average = grades.reduce((sum, grade) => sum + grade.GradeValue, 0) / grades.length;
+
+    await Project.update({ FinalGrade: average }, { where: { ProjectId: projectId } });
+
+    res.status(200).json({ message: "Final grade calculated", finalGrade: average });
+});
+
 app.post("/api/assign-jury", async (req, res) => {
     const { projectId } = req.body;
 
@@ -223,6 +313,7 @@ app.post("/api/assign-jury", async (req, res) => {
         res.status(500).json({ message: "Failed to assign jury." });
     }
 });
+
 app.listen(port, () => {
     console.log(`🚀 Server running on http://localhost:${port}`);
 }).on('error', (err) => {
