@@ -9,7 +9,6 @@ import projectModel from "./project.js";
 import deliverableModel from "./deliverable.js";
 import juryModel from "./jury.js";
 import gradeModel from "./grade.js";
-import notificationModel from "./notification.js";
 
 // Initialize models
 const User = userModel(sequelize, DataTypes);
@@ -20,7 +19,6 @@ const Project = projectModel(sequelize, DataTypes);
 const Deliverable = deliverableModel(sequelize, DataTypes);
 const Jury = juryModel(sequelize, DataTypes);
 const Grade = gradeModel(sequelize, DataTypes);
-const Notification = notificationModel(sequelize, DataTypes);
 
 // Define Associations
 User.hasMany(Student, { foreignKey: "UserId" });
@@ -57,5 +55,5 @@ export {
     Deliverable,
     Jury,
     Grade,
-    Notification,
+    
 };

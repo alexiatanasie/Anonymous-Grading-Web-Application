@@ -7,7 +7,6 @@ import StudentWorkspace from "./components/StudentWorkspace";
 import ProfessorWorkspace from "./components/ProfessorWorkspace";
 import JuryAssignedProjects from "./components/JuryAssignedProjects";
 import ProtectedRoute from "./components/ProtectedRoute";
-import ForgotPassword from "./components/ForgotPassword";
 import CreateTeam from './components/CreateTeam';
 
 function App() {
@@ -21,7 +20,6 @@ function App() {
                 {/* Public Routes */}
                 <Route path="/register" element={<Register />} />
                 <Route path="/login" element={<Login />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
 
                 {/* Student Workspace Route */}
                 <Route
