@@ -9,7 +9,7 @@ function CreateTeam() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
-    // Fetch available students on mount
+    // Fetch available students on component mount
     useEffect(() => {
         const fetchStudents = async () => {
             try {
@@ -42,12 +42,12 @@ function CreateTeam() {
         setSuccess('');
 
         if (!teamName.trim()) {
-            setError('Team name is required');
+            setError('Team name is required.');
             return;
         }
 
         if (selectedMembers.length === 0) {
-            setError('Please select at least one team member');
+            setError('Please select at least one team member.');
             return;
         }
 
@@ -60,6 +60,10 @@ function CreateTeam() {
             setSuccess('Team created successfully!');
             setTeamName('');
             setSelectedMembers([]);
+
+            // Refresh available students list
+            const response = await axios.get('http://localhost:8000/students/available');
+            setAvailableStudents(response.data);
         } catch (error) {
             console.error('Error creating team:', error);
             setError(
@@ -77,8 +81,7 @@ function CreateTeam() {
                     <input
                         type="text"
                         value={teamName}
-                        onChange
-                        ={handleTeamNameChange}
+                        onChange={handleTeamNameChange}
                         placeholder="Enter team name"
                         required
                     />
