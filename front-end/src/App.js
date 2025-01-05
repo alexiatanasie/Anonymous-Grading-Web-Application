@@ -6,39 +6,69 @@ import Register from "./components/Register";
 import StudentWorkspace from "./components/StudentWorkspace";
 import ProfessorWorkspace from "./components/ProfessorWorkspace";
 import JuryAssignedProjects from "./components/JuryAssignedProjects";
-import ProtectedRoute from "./components/ProtectedRoute"; 
-import ForgotPassword from "./components/ForgotPassword";
-
+import GradeProject from "./components/GradeProject"; 
+import ProtectedRoute from "./components/ProtectedRoute";
+import CreateTeam from "./components/CreateTeam";
 
 function App() {
     return (
         <Router>
+            {/* Navbar displayed on all pages */}
             <Navbar />
+
+            {/* Application Routes */}
             <Routes>
+                {/* Public Routes */}
                 <Route path="/register" element={<Register />} />
                 <Route path="/login" element={<Login />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
+
+                {/* Student Workspace Route */}
                 <Route
                     path="/student-workspace"
                     element={
-                        <ProtectedRoute>
+                        <ProtectedRoute requiredRoles={["student"]}>
                             <StudentWorkspace />
                         </ProtectedRoute>
                     }
                 />
+
+                {/* Professor Workspace Route */}
                 <Route
                     path="/professor-workspace"
                     element={
-                        <ProtectedRoute>
+                        <ProtectedRoute requiredRoles={["professor"]}>
                             <ProfessorWorkspace />
                         </ProtectedRoute>
                     }
                 />
+
+                {/* Jury Projects Route */}
                 <Route
-                    path="/jury-projects"
+                 path="/jury-projects"
+                element={
+                     <ProtectedRoute requiredRoles={["jury", "student"]}>
+                     <JuryAssignedProjects />
+                </ProtectedRoute>
+    }
+/>
+
+
+                {/* Grade Project Route */}
+                <Route
+                    path="/grade/:projectId"
                     element={
-                        <ProtectedRoute>
-                            <JuryAssignedProjects />
+                        <ProtectedRoute requiredRoles={["jury"]}>
+                            <GradeProject />
+                        </ProtectedRoute>
+                    }
+                />
+
+                {/* Team Creation Route for Students */}
+                <Route
+                    path="/create-team"
+                    element={
+                        <ProtectedRoute requiredRoles={["student"]}>
+                            <CreateTeam />
                         </ProtectedRoute>
                     }
                 />

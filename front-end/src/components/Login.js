@@ -27,10 +27,12 @@ function Login() {
                 },
                 body: JSON.stringify(formData),
             });
-
+    
             if (response.ok) {
                 const data = await response.json();
                 localStorage.setItem("token", data.token);
+                localStorage.setItem("userType", data.user.userType); 
+    
                 if (data.user.userType === "student") {
                     window.location.href = "/student-workspace";
                 } else if (data.user.userType === "professor") {
@@ -38,14 +40,14 @@ function Login() {
                 }
             } else {
                 const errorData = await response.json();
-                setErrorMessage(`Login failed: ${errorData.message}`);
+                setErrorMessage(errorData.message); 
             }
         } catch (error) {
             console.error("Error during login:", error);
             setErrorMessage("An error occurred. Please try again.");
         }
     };
-
+    
     return (
         <div className="login-container">
             <h2>Login</h2>
@@ -72,16 +74,11 @@ function Login() {
                     />
                 </label>
                 <br />
-                <div className="forgot-password-link">
-                    <Link to="/forgot-password">Forgot your password? Reset it here</Link>
-                </div>
-                <br />
                 <button type="submit">Login</button>
             </form>
             {errorMessage && (
                 <div className="error-message">
-                    {errorMessage} <br />
-                    <Link to="/forgot-password">Forgot Password?</Link>
+                    {errorMessage}
                 </div>
             )}
             <p>
