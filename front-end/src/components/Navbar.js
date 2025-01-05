@@ -8,6 +8,7 @@ function Navbar() {
     const token = localStorage.getItem("token");
     const userType = localStorage.getItem("userType");
 
+
     const handleLogout = () => {
         if (window.confirm("Are you sure you want to log out?")) {
             localStorage.removeItem("token");

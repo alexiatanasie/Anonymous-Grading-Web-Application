@@ -6,8 +6,9 @@ import Register from "./components/Register";
 import StudentWorkspace from "./components/StudentWorkspace";
 import ProfessorWorkspace from "./components/ProfessorWorkspace";
 import JuryAssignedProjects from "./components/JuryAssignedProjects";
+import GradeProject from "./components/GradeProject"; 
 import ProtectedRoute from "./components/ProtectedRoute";
-import CreateTeam from './components/CreateTeam';
+import CreateTeam from "./components/CreateTeam";
 
 function App() {
     return (
@@ -43,10 +44,21 @@ function App() {
 
                 {/* Jury Projects Route */}
                 <Route
-                    path="/jury-projects"
+                 path="/jury-projects"
+                element={
+                     <ProtectedRoute requiredRoles={["jury", "student"]}>
+                     <JuryAssignedProjects />
+                </ProtectedRoute>
+    }
+/>
+
+
+                {/* Grade Project Route */}
+                <Route
+                    path="/grade/:projectId"
                     element={
-                        <ProtectedRoute requiredRoles={["student", "jury"]}>
-                            <JuryAssignedProjects />
+                        <ProtectedRoute requiredRoles={["jury"]}>
+                            <GradeProject />
                         </ProtectedRoute>
                     }
                 />
