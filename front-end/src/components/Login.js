@@ -31,7 +31,7 @@ function Login() {
             if (response.ok) {
                 const data = await response.json();
                 localStorage.setItem("token", data.token);
-                localStorage.setItem("userType", data.user.userType); // Save userType for navbar logic
+                localStorage.setItem("userType", data.user.userType); 
     
                 if (data.user.userType === "student") {
                     window.location.href = "/student-workspace";

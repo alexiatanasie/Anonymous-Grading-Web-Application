@@ -9,17 +9,19 @@ export default (sequelize, DataTypes) => {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-                model: 'Users',
-                key: 'id'
-            }
+                model: "Users",
+                key: "UserId",
+            },
+            unique: "juryUniqueConstraint", 
         },
         ProjectId: {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-                model: 'Projects',
-                key: 'ProjectId'
-            }
+                model: "Projects",
+                key: "ProjectId",
+            },
+            unique: "juryUniqueConstraint", 
         },
     });
     return Jury;
