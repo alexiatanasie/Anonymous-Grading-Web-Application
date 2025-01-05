@@ -5,29 +5,25 @@ export default (sequelize, DataTypes) => {
             primaryKey: true,
             autoIncrement: true,
         },
-        Value: {
-            type: DataTypes.FLOAT,
+        JuryId: {
+            type: DataTypes.INTEGER,
             allowNull: false,
-            validate: {
-                min: 1,
-                max: 10,
+            references: {
+                model: "Jury",
+                key: "JuryId",
             },
         },
         ProjectId: {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-                model: 'Projects',
-                key: 'ProjectId'
-            }
+                model: "Projects",
+                key: "ProjectId",
+            },
         },
-        JuryId: {
-            type: DataTypes.INTEGER,
+        grade: {
+            type: DataTypes.FLOAT,
             allowNull: false,
-            references: {
-                model: 'Juries',
-                key: 'JuryId'
-            }
         },
     });
     return Grade;

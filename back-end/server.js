@@ -159,7 +159,7 @@ app.get('/students/available', async (req, res) => {
 
 
 
-// ✅ Create Team
+//create Team
 app.post('/api/teams', async (req, res) => {
     try {
         const { name, members } = req.body;
@@ -182,18 +182,48 @@ app.post('/api/teams', async (req, res) => {
 
         res.status(201).json({ message: 'Team created successfully', teamId: newTeam.TeamId });
     } catch (error) {
-        console.error('❌ Error creating team:', error);
+        console.error('Error creating team:', error);
         res.status(500).json({ message: 'Failed to create team' });
     }
 });
+app.post("/api/assign-jury", async (req, res) => {
+    const { projectId } = req.body;
 
-// ✅ Start the Server
+    try {
+        const project = await Project.findByPk(projectId, {
+            include: [{ model: Team, include: [Student] }],
+        });
+
+        const excludedStudentIds = project.Team.Students.map((student) => student.StudentId);
+
+        const availableStudents = await Student.findAll({
+            where: {
+                StudentId: { [Op.notIn]: excludedStudentIds },
+            },
+        });
+
+        if (availableStudents.length < 3) {
+            return res.status(400).json({ message: "Not enough students available for jury." });
+        }
+
+        const selectedJury = availableStudents.sort(() => 0.5 - Math.random()).slice(0, 3);
+
+        for (const juryMember of selectedJury) {
+            await Jury.create({ UserId: juryMember.UserId, ProjectId: projectId });
+        }
+
+        res.status(201).json({ message: "Jury assigned successfully.", jury: selectedJury });
+    } catch (error) {
+        console.error("Error assigning jury:", error);
+        res.status(500).json({ message: "Failed to assign jury." });
+    }
+});
 app.listen(port, () => {
     console.log(`🚀 Server running on http://localhost:${port}`);
 }).on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
-        console.error(`❌ Port ${port} is already in use.`);
+        console.error(`Port ${port} is already in use.`);
     } else {
-        console.error('❌ Server error:', err);
+        console.error('Server error:', err);
     }
 });
