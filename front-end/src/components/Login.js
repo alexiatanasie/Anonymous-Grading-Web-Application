@@ -74,23 +74,15 @@ function Login() {
                     />
                 </label>
                 <br />
-                <div className="forgot-password-link">
-                    <Link to="/forgot-password">Forgot your password? Reset it here</Link>
-                </div>
-                <br />
                 <button type="submit">Login</button>
             </form>
             {errorMessage && (
                 <div className="error-message">
-                    {errorMessage} <br />
-                    <Link to="/forgot-password">Forgot Password?</Link>
+                    {errorMessage}
                 </div>
             )}
             <p>
                 Don't have an account? <Link to="/register">Register here</Link>
-            </p>
-            <p>
-                Forgot your password? <a href="/forgot-password">Reset it here</a>
             </p>
         </div>
     );

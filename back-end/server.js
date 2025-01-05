@@ -132,14 +132,14 @@ app.post("/api/login", async (req, res) => {
     }
 });
 
-// ✅ Fetch Available Students
-//API!!!!!!
+// Fetch Available Students
+
 app.get('/students/available', async (req, res) => {
     try {
         const availableStudents = await Student.findAll({
             where: { 
                 TeamId: null, 
-                UserId: { [Sequelize.Op.ne]: null } // Ensure UserId is not null
+                UserId: { [Sequelize.Op.ne]: null } 
             },
             include: [
                 {
@@ -176,7 +176,7 @@ app.post('/api/teams', async (req, res) => {
         const newTeam = await Team.create({ name });
 
         await Student.update(
-            { TeamId: newTeam.TeamId }, // Use `TeamId` if `id` is not the correct column
+            { TeamId: newTeam.TeamId }, 
             { where: { StudentId: members } }
         );
 

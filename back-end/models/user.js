@@ -23,7 +23,7 @@ export default (sequelize, DataTypes) => {
             allowNull: false,
         },
     }, {
-        tableName: 'Users', // Explicit table name
+        tableName: 'Users', 
         timestamps: true,
     });
     return User;

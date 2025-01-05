@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import "./Register.css"; // Importăm fișierul CSS pentru stiluri
+import "./Register.css"; 
 
 function Register() {
     const [formData, setFormData] = useState({
