@@ -1,5 +1,6 @@
 import sequelize from "../config/database.js";
-import { DataTypes } from "sequelize";
+import { Sequelize, DataTypes } from 'sequelize';
+
 
 import userModel from "./user.js";
 import studentModel from "./student.js";
@@ -42,6 +43,7 @@ Grade.belongsTo(Project, { foreignKey: "ProjectId" });
 
 export {
     sequelize,
+    Sequelize,
     User,
     Student,
     Professor,

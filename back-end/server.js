@@ -2,7 +2,9 @@ import express from "express";
 import cors from "cors";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { sequelize, User, Student, Professor, Team } from "./models/index.js";
+import { sequelize, Sequelize, User, Student, Professor, Team } from "./models/index.js";
+
+
 
 const app = express();
 const port = 8000;
@@ -134,12 +136,13 @@ app.post("/api/login", async (req, res) => {
 
 // Fetch Available Students
 
+
 app.get('/students/available', async (req, res) => {
     try {
         const availableStudents = await Student.findAll({
             where: { 
-                TeamId: null, 
-                UserId: { [Sequelize.Op.ne]: null } 
+                TeamId: null,
+                UserId: { [Sequelize.Op.ne]: null } // Ensure UserId is not null
             },
             include: [
                 {
@@ -156,6 +159,8 @@ app.get('/students/available', async (req, res) => {
         res.status(500).json({ message: 'Failed to fetch available students' });
     }
 });
+
+
 
 
 
