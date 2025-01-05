@@ -1,19 +1,16 @@
 export default (sequelize, DataTypes) => {
     const Team = sequelize.define('Team', {
-        id: {
+        TeamId: {
             type: DataTypes.INTEGER,
             primaryKey: true,
             autoIncrement: true,
         },
-        name: {
+        TeamName: {
             type: DataTypes.STRING,
             allowNull: false,
         },
-        description: {
-            type: DataTypes.STRING,
-        },
     }, {
-        tableName: 'teams',
+        tableName: 'teams', // Explicit table name
         timestamps: true,
     });
     return Team;

@@ -1,3 +1,6 @@
+sequelize.options.logging = console.log;
+console.log("✅ Sequelize SQL Logging Enabled.");
+
 import express from "express";
 import cors from "cors";
 import bcrypt from "bcrypt";
@@ -164,22 +167,62 @@ app.get('/students/available', async (req, res) => {
 
 
 //create Team
-app.post('/api/teams', async (req, res) => {
-    const { name, memberIds } = req.body;
+// ✅ Create a Team with Improved Error Handling
+app.post('/api/teams', authenticateToken, restrictAccess(['student']), async (req, res) => {
+    const { TeamName, memberIds } = req.body;
 
-    if (!name || !memberIds || memberIds.length < 1) {
-        return res.status(400).json({ message: "Team name and members are required" });
+    if (!TeamName || !memberIds || !Array.isArray(memberIds) || memberIds.length < 1) {
+        return res.status(400).json({
+            message: "Team name and at least one valid team member are required."
+        });
     }
 
-    const team = await Team.create({ name });
+    try {
+        console.log("📌 Creating team with name:", TeamName);
 
-    await Student.update(
-        { TeamId: team.TeamId },
-        { where: { StudentId: memberIds } }
-    );
+        // Create the team
+        const team = await Team.create({ TeamName });
+        console.log("✅ Team created with TeamId:", team.TeamId);
 
-    res.status(201).json({ message: "Team created successfully", team });
+        // Validate student IDs
+        const validStudents = await Student.findAll({
+            where: { StudentId: memberIds }
+        });
+
+        if (validStudents.length !== memberIds.length) {
+            console.warn("⚠️ Invalid student IDs provided:", memberIds);
+            return res.status(400).json({
+                message: "One or more provided student IDs are invalid."
+            });
+        }
+
+        console.log("✅ Valid students fetched:", validStudents.map(s => s.StudentId));
+
+        // Assign students to the team
+        await Student.update(
+            { TeamId: team.TeamId },
+            { where: { StudentId: memberIds } }
+        );
+
+        console.log("✅ Students updated with TeamId:", team.TeamId);
+
+        res.status(201).json({
+            message: "Team created successfully",
+            team,
+        });
+    } catch (error) {
+        console.error("❌ Error creating team:", error.message, error.stack);
+        res.status(500).json({
+            message: "Failed to create team. Please try again later.",
+            error: error.message
+        });
+    }
 });
+
+
+
+
+
 
 app.post('/api/projects', async (req, res) => {
     const { title, teamId } = req.body;
@@ -321,5 +364,33 @@ app.listen(port, () => {
         console.error(`Port ${port} is already in use.`);
     } else {
         console.error('Server error:', err);
+    }
+});
+
+// ✅ Fetch All Teams with Their Members
+app.get('/api/teams/list', authenticateToken, async (req, res) => {
+    try {
+        console.log("📌 Fetching all teams with their members...");
+
+        const teams = await Team.findAll({
+            include: [{
+                model: Student,
+                attributes: ['StudentId'],
+                include: [{
+                    model: User,
+                    attributes: ['Username']
+                }]
+            }]
+        });
+
+        console.log("✅ Teams fetched successfully:", teams.length);
+
+        res.status(200).json(teams);
+    } catch (error) {
+        console.error("❌ Error fetching teams:", error.message, error.stack);
+        res.status(500).json({
+            message: "Failed to fetch teams. Please try again later.",
+            error: error.message
+        });
     }
 });
