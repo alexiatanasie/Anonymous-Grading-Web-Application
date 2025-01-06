@@ -1,20 +1,28 @@
 .navbar {
-    background-color: #333;
-    padding: 10px;
+    background-color: #540202; 
+    padding: 15px;
     display: flex;
-    justify-content: space-around;
+    justify-content: center; 
+    align-items: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .navbar ul {
     list-style: none;
-    padding: 0;
-    margin: 0;
     display: flex;
-    gap: 15px;
+    gap: 30px; 
+    margin: 0;
+    padding: 0;
 }
 
 .navbar ul li a {
-    color: white;
+    color: #EDE0A6; 
     text-decoration: none;
-    font-size: 16px;
+    font-size: 18px;
+    font-weight: bold;
+    transition: color 0.3s;
+}
+
+.navbar ul li a:hover {
+    color: #AB3131; 
 }

@@ -31,7 +31,7 @@ function Login() {
             if (response.ok) {
                 const data = await response.json();
                 localStorage.setItem("token", data.token);
-                localStorage.setItem("userType", data.user.userType); // Save userType for navbar logic
+                localStorage.setItem("userType", data.user.userType); 
     
                 if (data.user.userType === "student") {
                     window.location.href = "/student-workspace";
@@ -74,23 +74,15 @@ function Login() {
                     />
                 </label>
                 <br />
-                <div className="forgot-password-link">
-                    <Link to="/forgot-password">Forgot your password? Reset it here</Link>
-                </div>
-                <br />
                 <button type="submit">Login</button>
             </form>
             {errorMessage && (
                 <div className="error-message">
-                    {errorMessage} <br />
-                    <Link to="/forgot-password">Forgot Password?</Link>
+                    {errorMessage}
                 </div>
             )}
             <p>
                 Don't have an account? <Link to="/register">Register here</Link>
-            </p>
-            <p>
-                Forgot your password? <a href="/forgot-password">Reset it here</a>
             </p>
         </div>
     );

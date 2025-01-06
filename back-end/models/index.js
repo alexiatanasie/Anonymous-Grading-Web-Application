@@ -1,17 +1,33 @@
 import sequelize from "../config/database.js";
-import User from "./user.js";
-import Student from "./student.js";
-import Professor from "./professor.js";
-import Team from "./team.js";
-import Project from "./project.js";
-import Deliverable from "./deliverable.js";
-import Jury from "./jury.js";
-import Grade from "./grade.js";
-import Notification from "./notification.js";
+import { Sequelize, DataTypes } from 'sequelize';
 
 
+import userModel from "./user.js";
+import studentModel from "./student.js";
+import professorModel from "./professor.js";
+import teamModel from "./team.js";
+import projectModel from "./project.js";
+import juryModel from "./jury.js";
+import gradeModel from "./grade.js";
+
+// Initialize models
+const User = userModel(sequelize, DataTypes);
+const Student = studentModel(sequelize, DataTypes);
+const Professor = professorModel(sequelize, DataTypes);
+const Team = teamModel(sequelize, DataTypes);
+const Project = projectModel(sequelize, DataTypes);
+const Jury = juryModel(sequelize, DataTypes);
+const Grade = gradeModel(sequelize, DataTypes);
+
+// Define Associations
 User.hasMany(Student, { foreignKey: "UserId" });
 Student.belongsTo(User, { foreignKey: "UserId" });
+
+User.hasMany(Professor, { foreignKey: "UserId" });
+Professor.belongsTo(User, { foreignKey: "UserId" });
+
+Jury.belongsTo(User, { foreignKey: "UserId" });
+Jury.belongsTo(Project, { foreignKey: "ProjectId" });
 
 Team.hasMany(Student, { foreignKey: "TeamId" });
 Student.belongsTo(Team, { foreignKey: "TeamId" });
@@ -19,28 +35,22 @@ Student.belongsTo(Team, { foreignKey: "TeamId" });
 Project.belongsTo(Team, { foreignKey: "TeamId" });
 Team.hasOne(Project, { foreignKey: "TeamId" });
 
-Project.hasMany(Deliverable, { foreignKey: "ProjectId" });
-Deliverable.belongsTo(Project, { foreignKey: "ProjectId" });
-
 Project.hasMany(Jury, { foreignKey: "ProjectId" });
 Jury.belongsTo(Project, { foreignKey: "ProjectId" });
-
-Jury.belongsTo(User, { foreignKey: "UserId" });
 
 Grade.belongsTo(Jury, { foreignKey: "JuryId" });
 Grade.belongsTo(Project, { foreignKey: "ProjectId" });
 
-Notification.belongsTo(User, { foreignKey: "UserId" });
 
 export {
     sequelize,
+    Sequelize,
     User,
     Student,
     Professor,
     Team,
     Project,
-    Deliverable,
     Jury,
-    Grade,
-    Notification,
+    Grade,
+    
 };
