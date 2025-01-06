@@ -9,6 +9,7 @@ function CreateTeam() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
+    // Fetch available students when component mounts
     useEffect(() => {
         const fetchStudents = async () => {
             try {
@@ -33,6 +34,7 @@ function CreateTeam() {
         setSelectedMembers(selected);
     };
 
+    // Codul tău pentru `handleSubmit` vine aici
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
@@ -49,23 +51,26 @@ function CreateTeam() {
         }
 
         try {
-            console.log("Submitting team data:", {
-                name: teamName,
-                members: selectedMembers,
-            });
+            console.log("➡️ Sending team creation request:", { name: teamName, members: selectedMembers });
 
-            await axios.post('http://localhost:8000/api/teams', {
-                name: teamName,
-                members: selectedMembers,
-            });
+            const response = await axios.post(
+                'http://localhost:8000/api/teams',
+                { name: teamName, members: selectedMembers },
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    },
+                }
+            );
 
-            setSuccess('Team created successfully!');
+            console.log(" Team creation response:", response.data);
+            setSuccess(response.data.message || 'Team created successfully!');
             setTeamName('');
             setSelectedMembers([]);
 
             // Refresh the list of available students
-            const response = await axios.get('http://localhost:8000/students/available');
-            setAvailableStudents(response.data);
+            const refreshedStudents = await axios.get('http://localhost:8000/students/available');
+            setAvailableStudents(refreshedStudents.data);
         } catch (error) {
             console.error('Error creating team:', error.response || error);
             setError(

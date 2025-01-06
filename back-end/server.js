@@ -22,20 +22,20 @@ app.use(express.json());
 sequelize
     .authenticate()
     .then(() => {
-        console.log("✅ Database connection established successfully.");
+        console.log("Database connection established successfully.");
         return sequelize.sync({ alter: false });
     })
     .then(async () => {
-        console.log("✅ Database synchronized!");
+        console.log("Database synchronized!");
         await sequelize.query("DROP TABLE IF EXISTS Users_backup;");
-        console.log("✅ Users_backup table cleaned.");
+        console.log("Users_backup table cleaned.");
     })
     .catch((error) => {
-        console.error("❌ Database initialization failed:", error);
+        console.error("Database initialization failed:", error);
         process.exit(1);
     });
 
-// ✅ Generate JWT Token
+// Generate JWT Token
 const generateToken = (user) => {
     return jwt.sign(
         {
@@ -47,7 +47,7 @@ const generateToken = (user) => {
     );
 };
 
-// ✅ Middleware: Authenticate Token
+// Middleware: Authenticate Token
 const authenticateToken = (req, res, next) => {
     const authHeader = req.headers["authorization"];
     const token = authHeader && authHeader.split(" ")[1];
@@ -61,7 +61,7 @@ const authenticateToken = (req, res, next) => {
     });
 };
 
-// ✅ Middleware: Restrict Access by Role
+//Middleware: Restrict Access by Role
 const restrictAccess = (allowedRoles) => {
     return (req, res, next) => {
         if (!allowedRoles.includes(req.user.userType)) {
@@ -71,7 +71,7 @@ const restrictAccess = (allowedRoles) => {
     };
 };
 
-// ✅ Register User
+// Register User
 app.post("/api/register", async (req, res) => {
     const { username, password, email, userType } = req.body;
 
@@ -101,12 +101,12 @@ app.post("/api/register", async (req, res) => {
 
         res.status(201).json({ message: "User registered successfully", user });
     } catch (error) {
-        console.error("❌ Error during user registration:", error);
+        console.error("Error during user registration:", error);
         res.status(500).json({ message: "Internal server error" });
     }
 });
 
-// ✅ Login User
+//Login User
 app.post("/api/login", async (req, res) => {
     const { email, password } = req.body;
 
@@ -116,8 +116,14 @@ app.post("/api/login", async (req, res) => {
 
     try {
         const user = await User.findOne({ where: { Email: email } });
-        if (!user || !(await bcrypt.compare(password, user.Password))) {
-            return res.status(401).json({ message: "Invalid email or password." });
+
+        if (!user) {
+            return res.status(401).json({ field: "email", message: "Email not found." });
+        }
+
+        const isPasswordValid = await bcrypt.compare(password, user.Password);
+        if (!isPasswordValid) {
+            return res.status(401).json({ field: "password", message: "Incorrect password." });
         }
 
         const token = generateToken(user);
@@ -131,61 +137,154 @@ app.post("/api/login", async (req, res) => {
             },
         });
     } catch (error) {
-        console.error("❌ Error during login:", error);
+        console.error("Error during login:", error);
         res.status(500).json({ message: "Internal server error" });
     }
 });
 
 // Fetch Available Students
-
-
 app.get('/students/available', async (req, res) => {
     try {
         const availableStudents = await Student.findAll({
             where: {
-                TeamId: null, // Doar studenții care nu au deja o echipă
+                TeamId: null, // Selectează doar studenții fără echipă
             },
             include: [
                 {
-                    model: User, // Include informațiile din tabela Users
-                    attributes: ['Username'], // Returnează doar Username
+                    model: User,
+                    attributes: ['Username'], // Include doar Username din tabela Users
                 },
             ],
-            attributes: ['StudentId', 'UserId'], // Alege ce câmpuri să returnezi din Students
+            attributes: ['StudentId', 'UserId'], // Alege doar câmpurile necesare din tabela Students
         });
 
         res.status(200).json(availableStudents);
     } catch (error) {
-        console.error('❌ Error fetching available students:', error);
+        console.error('Error fetching available students:', error);
         res.status(500).json({ message: 'Failed to fetch available students' });
+    }
+});
+app.get('/teams/student/:userId', authenticateToken, async (req, res) => {
+    const { userId } = req.params;
+
+    try {
+        const student = await Student.findOne({ where: { UserId: userId } });
+
+        if (!student || !student.TeamId) {
+            return res.status(404).json({ message: "Student is not part of any team." });
+        }
+
+        const team = await Team.findOne({
+            where: { id: student.TeamId },
+            include: [
+                {
+                    model: Student,
+                    include: [{ model: User, attributes: ['Username'] }],
+                },
+            ],
+        });
+
+        res.status(200).json(team);
+    } catch (error) {
+        console.error('❌ Error fetching team for student:', error);
+        res.status(500).json({ message: 'Failed to fetch team for student.' });
     }
 });
 
 
-
 //create Team
-
-app.post('/api/teams', async (req, res) => {
+app.post('/api/teams', authenticateToken, restrictAccess(['student']), async (req, res) => {
     const { name, members } = req.body;
 
+    console.log("📌 Request received at /api/teams:");
+    console.log("➡️ Team Name:", name);
+    console.log("➡️ Member IDs:", members);
+
     if (!name || !members || members.length !== 3) {
-        console.error("Invalid team creation data:", { name, members });
-        return res.status(400).json({ message: "Team name is required, and exactly 3 members must be selected." });
+        console.log("❌ Validation failed: Missing or incorrect data");
+        return res.status(400).json({
+            message: "Team name is required, and exactly 3 members must be selected.",
+        });
     }
 
     try {
-        const newTeam = await Team.create({ name });
+        // Verificăm dacă numele echipei există deja
+        const existingTeam = await Team.findOne({ where: { TeamName: name } });
+        if (existingTeam) {
+            console.log("❌ Team name already exists:", name);
+            return res.status(400).json({ message: 'A team with this name already exists.' });
+        }
 
-        await Student.update(
-            { TeamId: newTeam.id }, 
+        // Verificăm disponibilitatea studenților
+        const unavailableStudents = await Student.findAll({
+            where: {
+                StudentId: members,
+                TeamId: { [Sequelize.Op.ne]: null },
+            },
+        });
+
+        if (unavailableStudents.length > 0) {
+            console.log("❌ Some students are already in a team:", unavailableStudents.map(s => s.StudentId));
+            return res.status(400).json({
+                message: `Some students are already part of a team: ${unavailableStudents.map(s => s.StudentId).join(', ')}`,
+            });
+        }
+
+        // Creăm echipa
+        console.log("✅ Creating team:", name);
+        const newTeam = await Team.create({ TeamName: name });
+        console.log("✅ Team created successfully:", newTeam.TeamId);
+
+        // Atribuim echipa studenților
+        console.log("🔄 Assigning team to students...");
+        const updateResult = await Student.update(
+            { TeamId: newTeam.TeamId },
             { where: { StudentId: members } }
         );
+        console.log("✅ Students updated:", updateResult);
 
-        console.log("Team created successfully:", newTeam);
-        res.status(201).json({ message: "Team created successfully", teamId: newTeam.id });
+        res.status(201).json({
+            message: 'Team created successfully',
+            teamId: newTeam.TeamId,
+        });
     } catch (error) {
-        console.error("Error creating team:", error);
-        res.status(500).json({ message: "Failed to create team" });
+        console.error("❌ Error in /api/teams:", error.message, error.stack);
+        res.status(500).json({
+            message: 'Failed to create team. Please try again later.',
+        });
+    }
+});
+
+app.get('/api/teams/student', authenticateToken, restrictAccess(['student']), async (req, res) => {
+    const userId = req.user.userId;
+
+    try {
+        // Găsim studentul pe baza UserId
+        const student = await Student.findOne({ where: { UserId: userId } });
+
+        if (!student || !student.TeamId) {
+            return res.status(404).json({
+                message: "Student is not part of any team."
+            });
+        }
+
+        // Găsim echipa din care face parte studentul
+        const team = await Team.findOne({
+            where: { TeamId: student.TeamId },
+            include: [
+                {
+                    model: Student,
+                    include: [{ model: User, attributes: ['Username'] }],
+                },
+            ],
+        });
+
+        res.status(200).json(team);
+    } catch (error) {
+        console.error("❌ Error fetching student's team:", error);
+        res.status(500).json({
+            message: "Failed to fetch team. Please try again later.",
+        });
     }
 });
 
@@ -217,7 +316,7 @@ app.post("/api/createproject", async (req, res) => {
     }
 });
 
-// ✅ Create a Team with Improved Error Handling
+//Create a Team with Improved Error Handling
 app.post('/api/teams', authenticateToken, restrictAccess(['student']), async (req, res) => {
     const { TeamName, memberIds } = req.body;
 
@@ -228,11 +327,11 @@ app.post('/api/teams', authenticateToken, restrictAccess(['student']), async (re
     }
 
     try {
-        console.log("📌 Creating team with name:", TeamName);
+        console.log("Creating team with name:", TeamName);
 
         // Create the team
         const team = await Team.create({ TeamName });
-        console.log("✅ Team created with TeamId:", team.TeamId);
+        console.log("Team created with TeamId:", team.TeamId);
 
         // Validate student IDs
         const validStudents = await Student.findAll({
@@ -240,13 +339,13 @@ app.post('/api/teams', authenticateToken, restrictAccess(['student']), async (re
         });
 
         if (validStudents.length !== memberIds.length) {
-            console.warn("⚠️ Invalid student IDs provided:", memberIds);
+            console.warn("Invalid student IDs provided:", memberIds);
             return res.status(400).json({
                 message: "One or more provided student IDs are invalid."
             });
         }
 
-        console.log("✅ Valid students fetched:", validStudents.map(s => s.StudentId));
+        console.log("Valid students fetched:", validStudents.map(s => s.StudentId));
 
         // Assign students to the team
         await Student.update(
@@ -254,24 +353,20 @@ app.post('/api/teams', authenticateToken, restrictAccess(['student']), async (re
             { where: { StudentId: memberIds } }
         );
 
-        console.log("✅ Students updated with TeamId:", team.TeamId);
+        console.log("Students updated with TeamId:", team.TeamId);
 
         res.status(201).json({
             message: "Team created successfully",
             team,
         });
     } catch (error) {
-        console.error("❌ Error creating team:", error.message, error.stack);
+        console.error("Error creating team:", error.message, error.stack);
         res.status(500).json({
             message: "Failed to create team. Please try again later.",
             error: error.message
         });
     }
 });
-
-
-
-
 
 
 app.post('/api/projects', async (req, res) => {
@@ -417,10 +512,10 @@ app.listen(port, () => {
     }
 });
 
-// ✅ Fetch All Teams with Their Members
+// Fetch All Teams with Their Members
 app.get('/api/teams/list', authenticateToken, async (req, res) => {
     try {
-        console.log("📌 Fetching all teams with their members...");
+        console.log("Fetching all teams with their members...");
 
         const teams = await Team.findAll({
             include: [{
@@ -433,11 +528,11 @@ app.get('/api/teams/list', authenticateToken, async (req, res) => {
             }]
         });
 
-        console.log("✅ Teams fetched successfully:", teams.length);
+        console.log("Teams fetched successfully:", teams.length);
 
         res.status(200).json(teams);
     } catch (error) {
-        console.error("❌ Error fetching teams:", error.message, error.stack);
+        console.error("Error fetching teams:", error.message, error.stack);
         res.status(500).json({
             message: "Failed to fetch teams. Please try again later.",
             error: error.message

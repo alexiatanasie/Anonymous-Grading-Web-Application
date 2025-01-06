@@ -10,7 +10,7 @@ export default (sequelize, DataTypes) => {
             allowNull: false,
         },
     }, {
-        tableName: 'teams', // Explicit table name
+        tableName: 'teams', 
         timestamps: true,
     });
     return Team;
