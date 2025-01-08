@@ -9,7 +9,6 @@ function CreateTeam() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
-    // Fetch available students when component mounts
     useEffect(() => {
         const fetchStudents = async () => {
             try {
@@ -34,7 +33,6 @@ function CreateTeam() {
         setSelectedMembers(selected);
     };
 
-    // Codul tău pentru `handleSubmit` vine aici
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
@@ -51,7 +49,7 @@ function CreateTeam() {
         }
 
         try {
-            console.log("➡️ Sending team creation request:", { name: teamName, members: selectedMembers });
+            console.log("Sending team creation request:", { name: teamName, members: selectedMembers });
 
             const response = await axios.post(
                 'http://localhost:8000/api/teams',
@@ -68,7 +66,6 @@ function CreateTeam() {
             setTeamName('');
             setSelectedMembers([]);
 
-            // Refresh the list of available students
             const refreshedStudents = await axios.get('http://localhost:8000/students/available');
             setAvailableStudents(refreshedStudents.data);
         } catch (error) {

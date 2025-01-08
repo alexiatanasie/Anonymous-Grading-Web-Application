@@ -9,33 +9,32 @@ export default (sequelize, DataTypes) => {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-                model: 'Users', // Tabela Users
-                key: 'UserId',  // Cheia primară din Users
+                model: 'Users', 
+                key: 'UserId', 
             },
         },
-        TeamId: { // Modificat din `teamId` în `TeamId` pentru consistență
+        TeamId: { 
             type: DataTypes.INTEGER,
             allowNull: true,
             references: {
-                model: 'teams', // Tabela Teams
-                key: 'TeamId',  // Cheia primară din Teams
+                model: 'teams', 
+                key: 'TeamId',  
             },
         },
     }, {
-        tableName: 'Students', // Explicit numele tabelei
-        timestamps: true, // Include createdAt și updatedAt
+        tableName: 'Students', 
+        timestamps: true, 
     });
 
-    // Relația între Student și Team
     Student.associate = (models) => {
         Student.belongsTo(models.Team, {
             foreignKey: 'TeamId',
-            as: 'Team', // Alias opțional pentru relație
+            as: 'Team', 
         });
 
         Student.belongsTo(models.User, {
             foreignKey: 'UserId',
-            as: 'User', // Alias opțional pentru relație
+            as: 'User', 
         });
     };
 
