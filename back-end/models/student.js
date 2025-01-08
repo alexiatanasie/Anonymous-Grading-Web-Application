@@ -9,17 +9,34 @@ export default (sequelize, DataTypes) => {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-                model: 'Users',
-                key: 'UserId'
+                model: 'Users', 
+                key: 'UserId', 
             },
         },
-        teamId: {
+        TeamId: { 
             type: DataTypes.INTEGER,
             allowNull: true,
+            references: {
+                model: 'teams', 
+                key: 'TeamId',  
+            },
         },
     }, {
-        tableName: 'Students',
-        timestamps: true,
+        tableName: 'Students', 
+        timestamps: true, 
     });
+
+    Student.associate = (models) => {
+        Student.belongsTo(models.Team, {
+            foreignKey: 'TeamId',
+            as: 'Team', 
+        });
+
+        Student.belongsTo(models.User, {
+            foreignKey: 'UserId',
+            as: 'User', 
+        });
+    };
+
     return Student;
 };

@@ -9,11 +9,11 @@ function CreateTeam() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
-    // Fetch available students on component mount
     useEffect(() => {
         const fetchStudents = async () => {
             try {
                 const response = await axios.get('http://localhost:8000/students/available');
+                console.log("Available students fetched:", response.data);
                 setAvailableStudents(response.data);
             } catch (error) {
                 console.error('Error fetching students:', error);
@@ -22,20 +22,17 @@ function CreateTeam() {
         };
 
         fetchStudents();
-    }, []);
+    }, []); 
 
-    // Handle team name change
     const handleTeamNameChange = (e) => {
         setTeamName(e.target.value);
     };
 
-    // Handle member selection
     const handleMemberSelection = (e) => {
         const selected = Array.from(e.target.selectedOptions, (option) => option.value);
         setSelectedMembers(selected);
     };
 
-    // Handle team creation
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
@@ -46,26 +43,33 @@ function CreateTeam() {
             return;
         }
 
-        if (selectedMembers.length === 0) {
-            setError('Please select at least one team member.');
+        if (selectedMembers.length !== 3) {
+            setError('You must select exactly 3 team members.');
             return;
         }
 
         try {
-            await axios.post('http://localhost:8000/teams', {
-                name: teamName,
-                members: selectedMembers,
-            });
+            console.log("Sending team creation request:", { name: teamName, members: selectedMembers });
 
-            setSuccess('Team created successfully!');
+            const response = await axios.post(
+                'http://localhost:8000/api/teams',
+                { name: teamName, members: selectedMembers },
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    },
+                }
+            );
+
+            console.log(" Team creation response:", response.data);
+            setSuccess(response.data.message || 'Team created successfully!');
             setTeamName('');
             setSelectedMembers([]);
 
-            // Refresh available students list
-            const response = await axios.get('http://localhost:8000/students/available');
-            setAvailableStudents(response.data);
+            const refreshedStudents = await axios.get('http://localhost:8000/students/available');
+            setAvailableStudents(refreshedStudents.data);
         } catch (error) {
-            console.error('Error creating team:', error);
+            console.error('Error creating team:', error.response || error);
             setError(
                 error.response?.data?.message || 'Failed to create team. Please try again later.'
             );
@@ -88,7 +92,7 @@ function CreateTeam() {
                 </label>
                 <br />
                 <label>
-                    Select Team Members:
+                    Select Team Members (exactly 3):
                     <select
                         multiple
                         value={selectedMembers}
