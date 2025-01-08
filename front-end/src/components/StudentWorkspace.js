@@ -31,7 +31,7 @@ function StudentWorkspace() {
             <h1>Student Workspace</h1>
 
             <div className="team-section">
-                <h2>My Teams</h2>
+                <h2>My Team</h2>
                 {error && <p className="error-message">{error}</p>}
                 {team ? (
                     <div>
