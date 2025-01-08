@@ -7,7 +7,8 @@ function Login() {
         email: "",
         password: "",
     });
-    const [errorMessage, setErrorMessage] = useState("");
+    const [emailError, setEmailError] = useState("");
+    const [passwordError, setPasswordError] = useState("");
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -19,6 +20,9 @@ function Login() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setEmailError("");
+        setPasswordError("");
+
         try {
             const response = await fetch("http://localhost:8000/api/login", {
                 method: "POST",
@@ -31,6 +35,8 @@ function Login() {
             if (response.ok) {
                 const data = await response.json();
                 localStorage.setItem("token", data.token);
+                localStorage.setItem("userType", data.user.userType);
+
                 if (data.user.userType === "student") {
                     window.location.href = "/student-workspace";
                 } else if (data.user.userType === "professor") {
@@ -38,11 +44,15 @@ function Login() {
                 }
             } else {
                 const errorData = await response.json();
-                setErrorMessage(`Login failed: ${errorData.message}`);
+                if (errorData.field === "email") {
+                    setEmailError(errorData.message);
+                } else if (errorData.field === "password") {
+                    setPasswordError(errorData.message);
+                }
             }
         } catch (error) {
             console.error("Error during login:", error);
-            setErrorMessage("An error occurred. Please try again.");
+            setEmailError("An error occurred. Please try again.");
         }
     };
 
@@ -60,6 +70,7 @@ function Login() {
                         required
                     />
                 </label>
+                {emailError && <p className="error-message">{emailError}</p>} 
                 <br />
                 <label>
                     Password:
@@ -71,19 +82,10 @@ function Login() {
                         required
                     />
                 </label>
-                <br />
-                <div className="forgot-password-link">
-                    <Link to="/forgot-password">Forgot your password? Reset it here</Link>
-                </div>
+                {passwordError && <p className="error-message">{passwordError}</p>} 
                 <br />
                 <button type="submit">Login</button>
             </form>
-            {errorMessage && (
-                <div className="error-message">
-                    {errorMessage} <br />
-                    <Link to="/forgot-password">Forgot Password?</Link>
-                </div>
-            )}
             <p>
                 Don't have an account? <Link to="/register">Register here</Link>
             </p>
