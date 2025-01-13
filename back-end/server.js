@@ -259,7 +259,6 @@ app.get('/api/teams/student', authenticateToken, restrictAccess(['student']), as
     const userId = req.user.userId;
 
     try {
-        // Găsim studentul pe baza UserId
         const student = await Student.findOne({ where: { UserId: userId } });
 
         if (!student || !student.TeamId) {
@@ -268,7 +267,6 @@ app.get('/api/teams/student', authenticateToken, restrictAccess(['student']), as
             });
         }
 
-        // Găsim echipa din care face parte studentul
         const team = await Team.findOne({
             where: { TeamId: student.TeamId },
             include: [
@@ -281,7 +279,7 @@ app.get('/api/teams/student', authenticateToken, restrictAccess(['student']), as
 
         res.status(200).json(team);
     } catch (error) {
-        console.error("❌ Error fetching student's team:", error);
+        console.error("Error fetching student's team:", error);
         res.status(500).json({
             message: "Failed to fetch team. Please try again later.",
         });
@@ -289,23 +287,16 @@ app.get('/api/teams/student', authenticateToken, restrictAccess(['student']), as
 });
 
 app.post("/api/createproject", async (req, res) => {
-    const { title, description, teamName, link } = req.body;
+    const { title, description, link } = req.body;
 
-    if (!title || !description || !teamName) {
-        return res.status(400).json({ message: "Title, Description, and Team Name are required" });
+    if (!title || !description) {
+        return res.status(400).json({ message: "Title and Description are required" });
     }
 
     try {
-        const team = await Team.findOne({ where: { name: teamName } });
-
-        if (!team) {
-            return res.status(404).json({ message: "Team not found" });
-        }
-
         const project = await Project.create({
             Title: title,
             Description: description,
-            TeamId: team.id,
             Link: link,
         });
 
@@ -316,7 +307,6 @@ app.post("/api/createproject", async (req, res) => {
     }
 });
 
-//Create a Team with Improved Error Handling
 app.post('/api/teams', authenticateToken, restrictAccess(['student']), async (req, res) => {
     const { TeamName, memberIds } = req.body;
 
@@ -329,11 +319,9 @@ app.post('/api/teams', authenticateToken, restrictAccess(['student']), async (re
     try {
         console.log("Creating team with name:", TeamName);
 
-        // Create the team
         const team = await Team.create({ TeamName });
         console.log("Team created with TeamId:", team.TeamId);
 
-        // Validate student IDs
         const validStudents = await Student.findAll({
             where: { StudentId: memberIds }
         });
@@ -347,7 +335,6 @@ app.post('/api/teams', authenticateToken, restrictAccess(['student']), async (re
 
         console.log("Valid students fetched:", validStudents.map(s => s.StudentId));
 
-        // Assign students to the team
         await Student.update(
             { TeamId: team.TeamId },
             { where: { StudentId: memberIds } }
