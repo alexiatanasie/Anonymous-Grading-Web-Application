@@ -31,8 +31,8 @@
 .login-container button {
     width: 100%;
     padding: 12px;
-    background-color: #507B58; /* Dark green */
-    color: #EDE0A6; /* Light beige text */
+    background-color: #507B58;
+    color: #EDE0A6; 
     border: none;
     border-radius: 5px;
     font-size: 18px;
@@ -42,8 +42,8 @@
 }
 
 .login-container button:hover {
-    background-color: #799163; /* Softer green */
-    transform: scale(1.02); /* Slight animation on hover */
+    background-color: #799163; 
+    transform: scale(1.02); 
 }
 
 form a {
@@ -65,4 +65,10 @@ form a:hover {
 body {
     background-color: #EDE8D0; 
     font-family: Arial, sans-serif;
+}
+.error-message {
+    color: #7E1E1E; 
+    font-weight: bold;
+    margin-top: 5px;
+    font-size: 14px;
 }
