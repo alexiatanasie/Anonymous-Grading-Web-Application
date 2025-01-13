@@ -68,16 +68,29 @@ const restrictAccess = (allowedRoles) => {
 app.post("/api/register", async (req, res) => {
     const { username, password, email, userType } = req.body;
 
+    // Validare pentru toate câmpurile
     if (!username || !password || !email || !userType) {
         return res.status(400).json({ message: "All fields are required" });
     }
 
     try {
+        // Verifică dacă utilizatorul există deja în baza de date
         const existingUser = await User.findOne({ where: { Email: email } });
         if (existingUser) {
+            // Dacă utilizatorul există deja, verifică dacă este profesor
+            if (userType === "professor") {
+                const professor = await Professor.findOne({ where: { UserId: existingUser.UserId } });
+                if (professor) {
+                    return res.status(409).json({ message: "Professor already registered with this email." });
+                }
+                // Dacă utilizatorul există dar nu este profesor, creează profesorul
+                await Professor.create({ UserId: existingUser.UserId });
+                return res.status(201).json({ message: "Professor successfully registered.", user: existingUser });
+            }
             return res.status(409).json({ message: "An account with this email already exists." });
         }
 
+        // Creează utilizatorul nou
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = await User.create({
             Username: username,
@@ -87,7 +100,7 @@ app.post("/api/register", async (req, res) => {
         });
 
         if (userType === "student") {
-            await Student.create({ UserId: user.UserId, teamId: null });
+            await Student.create({ UserId: user.UserId, TeamId: null });
         } else if (userType === "professor") {
             await Professor.create({ UserId: user.UserId });
         }
@@ -177,7 +190,7 @@ app.get('/teams/student/:userId', authenticateToken, async (req, res) => {
 
         res.status(200).json(team);
     } catch (error) {
-        console.error('❌ Error fetching team for student:', error);
+        console.error('Error fetching team for student:', error);
         res.status(500).json({ message: 'Failed to fetch team for student.' });
     }
 });
@@ -235,7 +248,7 @@ app.post('/api/teams', authenticateToken, restrictAccess(['student']), async (re
             teamId: newTeam.TeamId,
         });
     } catch (error) {
-        console.error("❌ Error in /api/teams:", error.message, error.stack);
+        console.error("Error in /api/teams:", error.message, error.stack);
         res.status(500).json({
             message: 'Failed to create team. Please try again later.',
         });
@@ -398,6 +411,27 @@ app.get("/api/teams/professor", authenticateToken, restrictAccess(["professor"])
         res.status(500).json({ message: "Failed to fetch teams. Please try again later." });
     }
 });
+app.get("/api/professor/students", authenticateToken, restrictAccess(["professor"]), async (req, res) => {
+    try {
+        const professor = await Professor.findOne({
+            where: { UserId: req.user.userId },
+        });
+
+        if (!professor) {
+            return res.status(404).json({ message: "Professor not found." });
+        }
+
+        const students = await Student.findAll({
+            where: { ProfessorId: professor.ProfessorId },
+            include: [{ model: User, attributes: ["Username", "Email"] }],
+        });
+
+        res.status(200).json(students);
+    } catch (error) {
+        console.error("Error fetching students for professor:", error);
+        res.status(500).json({ message: "Failed to fetch students." });
+    }
+});
 
 app.post('/api/grades', async (req, res) => {
     const { juryId, projectId, gradeValue } = req.body;
@@ -416,13 +450,20 @@ app.get('/api/projects/:projectId/final-grade', async (req, res) => {
 
     res.status(200).json({ message: "Final grade calculated", finalGrade: average });
 });
-app.get("/api/professor-projects", async (req, res) => {
+app.get("/api/professor-projects", authenticateToken, restrictAccess(["professor"]), async (req, res) => {
     try {
+        console.log("Professor ID:", req.user.userId);
+
         const projects = await Project.findAll({
             include: [
                 {
                     model: Team,
-                    include: [{ model: Student, include: [User] }],
+                    include: [
+                        {
+                            model: Student,
+                            include: [{ model: User, attributes: ["Username"] }],
+                        },
+                    ],
                 },
                 {
                     model: Grade,
@@ -430,6 +471,12 @@ app.get("/api/professor-projects", async (req, res) => {
                 },
             ],
         });
+
+        console.log("Projects fetched:", projects);
+
+        if (!projects.length) {
+            return res.status(404).json({ message: "No projects found for this professor." });
+        }
 
         const formattedProjects = projects.map((project) => ({
             title: project.Title,
@@ -444,6 +491,7 @@ app.get("/api/professor-projects", async (req, res) => {
         res.status(500).json({ message: "Failed to fetch professor projects." });
     }
 });
+
 app.get("/api/jury-projects", authenticateToken, restrictAccess(["jury"]), async (req, res) => {
     try {
         const juryAssignments = await Jury.findAll({
