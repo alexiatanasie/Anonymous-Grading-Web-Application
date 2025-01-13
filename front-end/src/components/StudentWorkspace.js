@@ -1,29 +1,41 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import AddProject from "./AddProject";
-import ProjectList from "./ProjectList";
 import "./StudentWorkspace.css";
 
 function StudentWorkspace() {
     const [team, setTeam] = useState(null);
+    const [grades, setGrades] = useState([]);
     const [error, setError] = useState("");
 
     useEffect(() => {
-        const fetchTeam = async () => {
+        const fetchTeamAndGrades = async () => {
             try {
-                const response = await axios.get("http://localhost:8000/api/teams/student", {
+                const teamResponse = await axios.get("http://localhost:8000/api/teams/student", {
                     headers: {
                         Authorization: `Bearer ${localStorage.getItem("token")}`,
                     },
                 });
-                setTeam(response.data);
+                setTeam(teamResponse.data);
+
+                if (teamResponse.data.TeamName) {
+                    const gradesResponse = await axios.get(
+                        `http://localhost:8000/api/grades/${teamResponse.data.TeamName}`,
+                        {
+                            headers: {
+                                Authorization: `Bearer ${localStorage.getItem("token")}`,
+                            },
+                        }
+                    );
+                    setGrades(gradesResponse.data);
+                }
             } catch (err) {
-                console.error("Error fetching team:", err);
-                setError(err.response?.data?.message || "Failed to fetch team.");
+                console.error("Error fetching team or grades:", err);
+                setError(err.response?.data?.message || "Failed to fetch team or grades.");
             }
         };
 
-        fetchTeam();
+        fetchTeamAndGrades();
     }, []);
 
     return (
@@ -32,7 +44,6 @@ function StudentWorkspace() {
 
             <div className="team-section">
                 <h2>My Team</h2>
-                {error && <p className="error-message">{error}</p>}
                 {team ? (
                     <div>
                         <h3>Team Name: {team.TeamName}</h3>
@@ -44,15 +55,32 @@ function StudentWorkspace() {
                         </ul>
                     </div>
                 ) : (
-                    !error && <p>You are not part of any team.</p>
+                    <p className="error-message">{error || "You are not part of any team."}</p>
                 )}
             </div>
 
             <hr />
 
-            <div className="project-section">
-                <AddProject />
-                <ProjectList />
+            <div className="add-project-section">
+                <AddProject teamName={team?.TeamName} />
+            </div>
+
+            <hr />
+
+            <div className="grades-section">
+                <h2>Grade Received</h2>
+                {grades.length > 0 ? (
+                    <ul>
+                        {grades.map((grade, index) => (
+                            <li key={index}>
+                                <strong>Project:</strong> {grade.ProjectTitle} - <strong>Grade:</strong>{" "}
+                                {grade.GradeValue}
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    <p>No grade received yet.</p>
+                )}
             </div>
         </div>
     );
