@@ -51,6 +51,5 @@ export {
     Team,
     Project,
     Jury,
-    Grade,
-    
+    Grade,
 };
