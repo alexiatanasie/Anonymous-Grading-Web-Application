@@ -11,7 +11,6 @@ function StudentWorkspace() {
     useEffect(() => {
         const fetchTeamAndGrades = async () => {
             try {
-                // Fetch team details
                 const teamResponse = await axios.get("http://localhost:8000/api/teams/student", {
                     headers: {
                         Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -19,7 +18,6 @@ function StudentWorkspace() {
                 });
                 setTeam(teamResponse.data);
 
-                // Fetch grades for the team
                 if (teamResponse.data.TeamName) {
                     const gradesResponse = await axios.get(
                         `http://localhost:8000/api/grades/${teamResponse.data.TeamName}`,
