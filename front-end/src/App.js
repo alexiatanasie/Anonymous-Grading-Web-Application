@@ -21,7 +21,14 @@ function App() {
                 <Routes>
                     <Route path="/register" element={<Register />} />
                     <Route path="/login" element={<Login />} />
-                   
+                    <Route
+                        path="/create-team"
+                        element={
+                            <ProtectedRoute requiredRoles={["student"]}>
+                                <CreateTeam />
+                            </ProtectedRoute>
+                        }
+                    />
                     <Route
                         path="/student-workspace"
                         element={
@@ -58,14 +65,7 @@ function App() {
                         }
                     />
 
-                     <Route
-                        path="/create-team"
-                        element={
-                            <ProtectedRoute requiredRoles={["student"]}>
-                                <CreateTeam />
-                            </ProtectedRoute>
-                        }
-                    />
+                    
                 </Routes>
             </div>
         </Router>

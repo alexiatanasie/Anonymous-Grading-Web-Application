@@ -23,8 +23,11 @@ const Grade = gradeModel(sequelize, DataTypes);
 User.hasMany(Student, { foreignKey: "UserId" });
 Student.belongsTo(User, { foreignKey: "UserId" });
 
-User.hasMany(Professor, { foreignKey: "UserId" });
+User.hasOne(Professor, { foreignKey: "UserId", onDelete: "CASCADE" });
 Professor.belongsTo(User, { foreignKey: "UserId" });
+
+Professor.hasMany(Student, { foreignKey: "ProfessorId" });
+Student.belongsTo(Professor, { foreignKey: "ProfessorId" });
 
 Jury.belongsTo(User, { foreignKey: "UserId" });
 Jury.belongsTo(Project, { foreignKey: "ProjectId" });
