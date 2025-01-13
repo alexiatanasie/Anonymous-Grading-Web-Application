@@ -19,10 +19,12 @@ function ProjectList() {
 
     return (
         <div>
-            <h2>Project List</h2>
+            <h2>Grade</h2>
             <ul>
                 {projects.map((project) => (
-                    <li key={project.id}>{project.name}</li>
+                    <li key={project.ProjectId}>
+                        <strong>{project.Title}</strong> - Final Grade: {project.FinalGrade || "Not graded yet"}
+                    </li>
                 ))}
             </ul>
         </div>

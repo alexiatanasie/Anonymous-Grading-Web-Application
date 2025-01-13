@@ -1,16 +1,14 @@
-/* General Container */
 .student-workspace-container {
     width: 800px;
     margin: 50px auto;
     padding: 20px;
-    background-color: #799163; /* Similar to other elements */
+    background-color: #799163; 
     border-radius: 10px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
     color: #ffffff;
     font-family: Arial, sans-serif;
 }
 
-/* Title Styling */
 .student-workspace-container h1 {
     text-align: center;
     font-size: 28px;
@@ -18,7 +16,6 @@
     margin-bottom: 30px;
 }
 
-/* Section Headings */
 .student-workspace-container h2 {
     font-size: 24px;
     color: #ede0a6;
@@ -33,7 +30,6 @@
     margin-top: 15px;
 }
 
-/* Team Members List */
 .team-members-list {
     list-style: none;
     padding: 0;
@@ -48,7 +44,6 @@
     font-size: 16px;
 }
 
-/* Error Message */
 .error-message {
     color: #7e1e1e;
     font-weight: bold;
@@ -57,15 +52,64 @@
     text-align: center;
 }
 
-/* Separator */
-.student-workspace-container hr {
-    border: 0;
-    height: 1px;
-    background-color: #ede0a6;
-    margin: 30px 0;
+.section-container {
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 2px solid #ede0a6;
+    border-radius: 10px;
+    background-color: #799163;
 }
 
-/* Project Section */
-.project-section {
-    margin-top: 20px;
+.add-project-container label,
+.grades-section label {
+    font-size: 16px;
+    color: #ede0a6;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.add-project-container input,
+.add-project-container textarea {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ede0a6;
+    border-radius: 5px;
+    font-size: 16px;
+    color: #540202;
+    background-color: #ffffff;
+}
+
+.add-project-container button {
+    background-color: #540202;
+    color: #ffffff;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.add-project-container button:hover {
+    background-color: #7e1e1e;
+}
+
+.grades-section ul {
+    list-style: none;
+    padding: 0;
+}
+
+.grades-section ul li {
+    background-color: #ffffff;
+    color: #540202;
+    padding: 10px;
+    margin-bottom: 5px;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+.section-title {
+    font-size: 20px;
+    color: #ede0a6;
+    margin-bottom: 10px;
 }
