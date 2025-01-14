@@ -1,4 +1,6 @@
-export default (sequelize, DataTypes) => {
+import { DataTypes } from "sequelize";
+
+export default (sequelize) => {
     const Project = sequelize.define("Project", {
         ProjectId: {
             type: DataTypes.INTEGER,
@@ -9,14 +11,23 @@ export default (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: false,
         },
-        TeamId: {
-            type: DataTypes.INTEGER,
+        Description: {
+            type: DataTypes.TEXT,
             allowNull: false,
-            references: {
-                model: 'Teams',
-                key: 'id'
-            }
+        },
+        Link: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        FinalGrade: {
+            type: DataTypes.FLOAT,
+            allowNull: true,
+        },
+        TeamName: {
+            type: DataTypes.STRING,
+            allowNull: false,
         },
     });
+
     return Project;
 };
